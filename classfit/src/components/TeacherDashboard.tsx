@@ -39,6 +39,21 @@ const COMMON_SUPPLIES = [
 const ANALYZABLE_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'];
 const MAX_ANALYSIS_BYTES = 3 * 1024 * 1024;
 
+// AI가 쓴 과목명을 학생 수강 정보의 표기로 맞춰야 평가가 학생에게 연결된다.
+function normalizeSubject(subject: string): string {
+  return subject
+    .replace(/\s/g, '')
+    .replace(/Ⅱ|II/gi, '2')
+    .replace(/Ⅰ|I/gi, '1')
+    .toLowerCase();
+}
+
+function matchKnownSubject(subject: string, students: StudentProfile[]): string {
+  const target = normalizeSubject(subject);
+  const known = students.flatMap((s) => s.courses.map((c) => c.subject));
+  return known.find((name) => normalizeSubject(name) === target) || subject;
+}
+
 function getLocalDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -244,7 +259,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       if (result.targetGrade) handleGradeChangeInForm(result.targetGrade);
       if (result.block) setBlock(result.block);
-      if (result.subject) setSubject(result.subject);
+      if (result.subject) setSubject(matchKnownSubject(result.subject, students));
       if (result.title) setTitle(result.title);
       if (result.type) setType(result.type);
       if (result.date) setDate(result.date);
