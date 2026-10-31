@@ -37,14 +37,19 @@ async function fetchRows(grade: number, classNum: number | null, days: Date[]) {
 }
 
 // NEIS에 아직 없는 요일은 기준 주의 같은 요일 시간표를 반복한다.
-function fillFromBaseWeek(rows: TimetableRow[], baseRows: TimetableRow[], days: Date[]) {
+function fillFromBaseWeek(
+  rows: TimetableRow[],
+  baseRows: TimetableRow[],
+  days: Date[],
+  noClassDays: Record<string, string>
+) {
   const baseDays = getWeekDays(0);
   const filled = [...rows];
   let isProjected = false;
 
   days.forEach((day, index) => {
     const date = toCompactDate(day);
-    if (rows.some((row) => row.date === date)) return;
+    if (noClassDays[date] || rows.some((row) => row.date === date)) return;
 
     const baseDate = toCompactDate(baseDays[index]);
     const copied = baseRows
@@ -54,13 +59,27 @@ function fillFromBaseWeek(rows: TimetableRow[], baseRows: TimetableRow[], days: 
     filled.push(...copied);
   });
 
-  return { filled, isProjected };
+  return { filled: filled.filter((row) => !noClassDays[row.date]), isProjected };
+}
+
+// 학사일정을 못 받아도 시간표는 보여 준다.
+async function fetchNoClassDays(grade: number, days: Date[]): Promise<Record<string, string>> {
+  try {
+    const from = toCompactDate(days[0]);
+    const to = toCompactDate(days[4]);
+    const response = await fetch(`/api/school-days?grade=${grade}&from=${from}&to=${to}`);
+    const data = await response.json();
+    return response.ok ? data.days : {};
+  } catch {
+    return {};
+  }
 }
 
 // classNum을 생략하면 학년 전체 시간표를 받는다.
 export function useNeisTimetable(grade: number, classNum: number | null, weekOffset = 0) {
   const [rows, setRows] = useState<TimetableRow[]>([]);
   const [baseRows, setBaseRows] = useState<TimetableRow[]>([]);
+  const [noClassDays, setNoClassDays] = useState<Record<string, string>>({});
   const [isLimited, setIsLimited] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -74,9 +93,10 @@ export function useNeisTimetable(grade: number, classNum: number | null, weekOff
     setError('');
     const baseRequest = weekOffset > 0 ? fetchRows(grade, classNum, getWeekDays(0)) : null;
 
-    Promise.all([fetchRows(grade, classNum, days), baseRequest])
-      .then(([week, base]) => {
+    Promise.all([fetchRows(grade, classNum, days), baseRequest, fetchNoClassDays(grade, days)])
+      .then(([week, base, holidays]) => {
         if (!isActive) return;
+        setNoClassDays(holidays);
         setRows(week.rows);
         setBaseRows(base ? base.rows : []);
         setIsLimited(week.limited);
@@ -95,7 +115,7 @@ export function useNeisTimetable(grade: number, classNum: number | null, weekOff
     };
   }, [grade, classNum, from, weekOffset]);
 
-  const { filled, isProjected } = fillFromBaseWeek(rows, baseRows, days);
+  const { filled, isProjected } = fillFromBaseWeek(rows, baseRows, days, noClassDays);
   const finalRows = classNum ? applyTimetableOverrides(filled, grade, classNum) : filled;
-  return { rows: finalRows, days, isLimited, isLoading, error, isProjected };
+  return { rows: finalRows, days, isLimited, isLoading, error, isProjected, noClassDays };
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Assessment, DayOfWeek, StudentProfile, WeeklyBlockSlot } from '../types';
 import { DAY_KOREAN } from '../utils/scheduleMatcher';
 import { getBlockAt } from '../data/blockLayouts';
+import { NoClassDayCell } from './NoClassDayCell';
 import { toCompactDate } from '../utils/textbookList';
 import { useNeisTimetable } from '../utils/useNeisTimetable';
 import { ChevronLeft, ChevronRight, Clock, MapPin, SlidersHorizontal, Sparkles } from 'lucide-react';
@@ -39,7 +40,7 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
 }) => {
   const [weekOffset, setWeekOffset] = useState(0);
   const { grade, classNum } = activeStudent;
-  const { rows, days, isLimited, isLoading, error, isProjected } = useNeisTimetable(grade, classNum, weekOffset);
+  const { rows, days, isLimited, isLoading, error, isProjected, noClassDays } = useNeisTimetable(grade, classNum, weekOffset);
   const blockLabel = grade === 3 ? 'E, F, G, H' : 'A, B, C, D';
 
   const getSubject = (dayIndex: number, period: number) => {
@@ -147,7 +148,7 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
       )}
       {error && <p className="text-xs font-semibold text-rose-700">{error}</p>}
       {isProjected && (
-        <p className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">이 주는 NEIS에 없어 현재 시간표를 반복해 표시합니다. 방학과 공휴일은 반영되지 않습니다.</p>
+        <p className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">이 주는 NEIS에 시간표가 없어 현재 시간표를 반복해 표시합니다.</p>
       )}
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
@@ -190,11 +191,19 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
                   <td className="py-3 px-2 font-bold text-slate-600 bg-slate-50/60 border-r border-slate-200 tabular-nums">
                     {period}교시
                   </td>
-                  {DAYS.map((day, index) => (
-                    <td key={day} className="py-2.5 px-2 border-r last:border-r-0 border-slate-100 align-top">
-                      {renderCell(day, index, period)}
-                    </td>
-                  ))}
+                  {DAYS.map((day, index) => {
+                    const noClassName = noClassDays[toCompactDate(days[index])];
+                    if (noClassName) {
+                      return period === PERIODS[0] ? (
+                        <NoClassDayCell key={day} name={noClassName} rowSpan={PERIODS.length} />
+                      ) : null;
+                    }
+                    return (
+                      <td key={day} className="py-2.5 px-2 border-r last:border-r-0 border-slate-100 align-top">
+                        {renderCell(day, index, period)}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
