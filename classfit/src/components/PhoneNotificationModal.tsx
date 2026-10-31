@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { MatchedAssessment, StudentProfile } from '../types';
 import { getDetailedTimeRemaining } from '../utils/scheduleMatcher';
+import {
+  disableDailyPush,
+  enableDailyPush,
+  isDailyPushEnabled,
+  isDailyPushSupported,
+  refreshDailyPush,
+} from '../utils/dailyPush';
 import { Wind,
   X,
   Clock,
@@ -64,6 +71,8 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
   const [currentDateStr, setCurrentDateStr] = useState('10월 31일 토요일');
   const [currentDateApple, setCurrentDateApple] = useState('10월 31일 토요일');
   const [webNotificationSent, setWebNotificationSent] = useState(false);
+  const [isDailyPushOn, setIsDailyPushOn] = useState(isDailyPushEnabled);
+  const [isDailyPushBusy, setIsDailyPushBusy] = useState(false);
   const [webNotificationError, setWebNotificationError] = useState<string | null>(null);
   const [showHeadsUpBanner, setShowHeadsUpBanner] = useState(false);
   const [expandedCard, setExpandedCard] = useState<boolean>(true);
@@ -173,6 +182,25 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
       }
     } catch (e: any) {
       setWebNotificationError('알림 발송 중 오류: ' + (e?.message || '알림 권한 필요'));
+    }
+  };
+
+  const handleToggleDailyPush = async () => {
+    setWebNotificationError(null);
+    setIsDailyPushBusy(true);
+    try {
+      if (isDailyPushOn) {
+        await disableDailyPush();
+        setIsDailyPushOn(false);
+      } else {
+        await enableDailyPush(student);
+        await refreshDailyPush(student, closestAssessment);
+        setIsDailyPushOn(true);
+      }
+    } catch (e: any) {
+      setWebNotificationError(e?.message || '알림을 설정하지 못했습니다.');
+    } finally {
+      setIsDailyPushBusy(false);
     }
   };
 
@@ -345,6 +373,16 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>실제 기기 상단 알림바 발송 (Web Push)</span>
+            </button>
+
+            <button
+              onClick={handleToggleDailyPush}
+              disabled={isDailyPushBusy || !isDailyPushSupported}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+              title="매일 아침 D-Day가 바뀐 알림을 받습니다"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>{isDailyPushOn ? '매일 D-Day 알림 끄기' : '매일 D-Day 알림 켜기'}</span>
             </button>
 
             <button

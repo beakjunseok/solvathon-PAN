@@ -46,3 +46,13 @@ create policy "classfit files demo read" on storage.objects
   for select to anon using (bucket_id = 'classfit-files');
 create policy "classfit files demo upload" on storage.objects
   for insert to anon with check (bucket_id = 'classfit-files');
+
+-- 푸시 구독: 공개 키 정책을 만들지 않아 서버 전용 키로만 접근할 수 있습니다.
+create table if not exists public.push_subscriptions (
+  endpoint text primary key,
+  subscription jsonb not null,
+  profile jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.push_subscriptions enable row level security;

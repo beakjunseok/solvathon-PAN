@@ -23,6 +23,7 @@ import {
   upsertRemoteAssessments,
   deleteRemoteAssessment,
 } from './utils/remoteStore';
+import { refreshDailyPush } from './utils/dailyPush';
 import { Navbar } from './components/Navbar';
 import { StudentHome } from './components/StudentHome';
 import { StudentScheduleEditor } from './components/StudentScheduleEditor';
@@ -152,6 +153,14 @@ export default function App() {
   const closestTeacherAssessment = useMemo(() => {
     return getClosestTeacherAssessment(assessments, weeklySchedule);
   }, [assessments, weeklySchedule]);
+
+  // 앱을 열거나 수행평가 상태가 바뀌면 고정 알림의 D-Day를 다시 맞춘다.
+  useEffect(() => {
+    if (!activeStudent) return;
+    refreshDailyPush(activeStudent, closestStudentAssessment).catch((err) => {
+      console.error('Failed to refresh daily notification', err);
+    });
+  }, [activeStudent, closestStudentAssessment]);
 
   // Persistence hooks
   const handleSelectRole = (newRole: AppRole) => {
