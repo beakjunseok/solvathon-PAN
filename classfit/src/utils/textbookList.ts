@@ -1,5 +1,5 @@
 import { StudentProfile } from '../types';
-import { getBlockAt, getDayFromCompactDate } from '../data/blockLayouts';
+import { getBlockAt, getDayFromCompactDate, isSpecialSchedule } from '../data/blockLayouts';
 
 // 수업이 아닌 시간표 항목에는 교과서가 필요 없다.
 const NON_TEXTBOOK_PATTERN = /자율|자치|동아리|진로활동|봉사|휴업|스포츠|체육|행사|고사|시험/;
@@ -33,7 +33,7 @@ export function applyMyElectives<T extends { date: string; period: number; subje
   return rows.flatMap((row) => {
     const day = getDayFromCompactDate(row.date);
     const block = day ? getBlockAt(student.grade, day, row.period) : null;
-    if (!block) return [row];
+    if (!block || isSpecialSchedule(row.subject)) return [row];
     const subject = student.courses.find((course) => course.block === block)?.subject;
     return subject ? [{ ...row, subject }] : [];
   });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Assessment, DayOfWeek, StudentProfile, WeeklyBlockSlot } from '../types';
 import { DAY_KOREAN } from '../utils/scheduleMatcher';
-import { getBlockAt } from '../data/blockLayouts';
+import { getBlockAt, isSpecialSchedule } from '../data/blockLayouts';
 import { NoClassDayCell } from './NoClassDayCell';
 import { toCompactDate } from '../utils/textbookList';
 import { useNeisTimetable } from '../utils/useNeisTimetable';
@@ -19,7 +19,6 @@ interface WeeklyBlockMatrixProps {
 
 const DAYS: DayOfWeek[] = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
-const NO_CLASS_PATTERN = /휴업|방학|재량|개교|고사|시험/;
 
 const BLOCK_STYLES: Record<string, string> = {
   A: 'bg-indigo-50 border-indigo-200 text-indigo-900',
@@ -52,7 +51,7 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
     const subject = getSubject(dayIndex, period);
     const block = getBlockAt(grade, day, period);
 
-    if (block && subject && !NO_CLASS_PATTERN.test(subject)) {
+    if (block && subject && !isSpecialSchedule(subject)) {
       const course = activeStudent.courses.find((c) => c.block === block);
       return (
         <div className={`p-2 rounded-xl border text-left min-h-[64px] ${BLOCK_STYLES[block] || ''}`}>

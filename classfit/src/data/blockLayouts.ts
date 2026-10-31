@@ -30,6 +30,13 @@ export function setBlockLayouts(layouts: BlockLayouts): void {
   activeLayouts = layouts;
 }
 
+// 행사나 시험으로 바뀐 시간표는 블록 칸이어도 NEIS 내용을 그대로 쓴다.
+const SPECIAL_SCHEDULE_PATTERN = /휴업|방학|재량|개교|고사|시험|동아리|자율|자치|진로활동|봉사|행사|체험|축제|특강/;
+
+export function isSpecialSchedule(subject: string): boolean {
+  return SPECIAL_SCHEDULE_PATTERN.test(subject);
+}
+
 export function hasBlockLayout(grade: number): boolean {
   return Object.keys(activeLayouts[grade] || {}).length > 0;
 }

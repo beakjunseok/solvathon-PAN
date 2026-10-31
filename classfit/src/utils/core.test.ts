@@ -143,6 +143,11 @@ describe('등교 준비물', () => {
     expect(applyMyElectives(rows, student({})).map((row) => row.subject)).toEqual(['화학', '일본 문화']);
   });
 
+  it('행사로 바뀐 블록 칸은 NEIS 내용을 그대로 쓴다', () => {
+    const rows = [{ date: '20261102', period: 5, subject: '동아리활동' }];
+    expect(applyMyElectives(rows, student({}))[0].subject).toBe('동아리활동');
+  });
+
   it('고르지 않은 블록과 교과서가 없는 시간은 뺀다', () => {
     const rows = [
       { date: '20261102', period: 1, subject: '자율·자치활동' },
