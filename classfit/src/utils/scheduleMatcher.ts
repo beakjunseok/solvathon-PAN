@@ -1,7 +1,13 @@
-import { Assessment, DayOfWeek, MatchedAssessment, StudentProfile, WeeklyBlockSlot } from '../types';
+import { Assessment, AssessmentSlot, DayOfWeek, MatchedAssessment, StudentProfile, WeeklyBlockSlot } from '../types';
 import { getBlockPeriodOnDay, hasBlockLayout } from '../data/blockLayouts';
 
-export const TODAY_DATE_STR = '2026-10-23'; // Base demo date matching system context
+function getLocalDateText(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+export const TODAY_DATE_STR = getLocalDateText(new Date());
 
 const DAY_MAP: Record<number, DayOfWeek | null> = {
   1: 'MON',
@@ -82,6 +88,36 @@ export function getPeriodForBlockAndDate(
   return { period: 2, dayStr, isBlockDay: true };
 }
 
+function isSameSubject(a: string, b: string): boolean {
+  const left = a.replace(/\s/g, '').toLowerCase();
+  const right = b.replace(/\s/g, '').toLowerCase();
+  return left.length > 0 && right.length > 0 && (left.includes(right) || right.includes(left));
+}
+
+export function formatSlot(slot: AssessmentSlot): string {
+  const [year, month, day] = slot.date.split('-').map(Number);
+  const dayName = '일월화수목금토'[new Date(year, month - 1, day).getDay()];
+  const target = slot.block ? `${slot.block}블록` : `${slot.classNum}반`;
+  return `${month}/${day}(${dayName}) ${slot.period}교시 ${target}`;
+}
+
+// 학생에게 해당하는 칸 중 앞으로 가장 가까운 칸을 고른다. 모두 지났으면 마지막 칸을 쓴다.
+export function findStudentSlot(
+  assessment: Assessment,
+  student: StudentProfile,
+  today = TODAY_DATE_STR
+): AssessmentSlot | null {
+  const matches = (assessment.slots || [])
+    .filter((slot) => {
+      if (slot.block) {
+        return student.courses.some((c) => c.block === slot.block && isSameSubject(c.subject, assessment.subject));
+      }
+      return slot.classNum === student.classNum;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.period - b.period);
+  return matches.find((slot) => slot.date >= today) || matches[matches.length - 1] || null;
+}
+
 /**
  * Core Matching Algorithm:
  * Matches student's personal A~D block timetable with teacher's assessment announcements.
@@ -99,6 +135,33 @@ export function matchStudentAssessments(
   for (const asmt of allAssessments) {
     // 1. Grade check
     if (asmt.targetGrade && asmt.targetGrade !== student.grade) {
+      continue;
+    }
+
+    // 시간표 칸으로 등록한 평가는 학생에게 해당하는 칸의 날짜와 교시를 쓴다.
+    if (asmt.slots && asmt.slots.length > 0) {
+      const slot = findStudentSlot(asmt, student);
+      if (!slot) continue;
+
+      const course = slot.block ? student.courses.find((c) => c.block === slot.block) : null;
+      const { dayStr } = getPeriodForBlockAndDate('COMMON', slot.date, weeklySchedule, slot.period);
+      const daysRemaining = calculateDaysRemaining(slot.date, baseDateStr);
+
+      matched.push({
+        ...asmt,
+        date: slot.date,
+        block: slot.block || 'COMMON',
+        periodOverride: slot.period,
+        studentRoom: slot.block
+          ? course?.room || `${slot.block}블록 이동교실`
+          : `${student.grade}-${student.classNum} 우리 반 교실`,
+        calculatedPeriod: slot.period,
+        dayOfWeekStr: dayStr,
+        daysRemaining,
+        isToday: daysRemaining === 0,
+        status: getAssessmentStatus(daysRemaining),
+        isCompleted: student.completedAssessments.includes(asmt.id),
+      });
       continue;
     }
 

@@ -1,4 +1,5 @@
 import { Assessment, StudentProfile, Submission } from '../types';
+import { findStudentSlot } from './scheduleMatcher';
 import {
   fetchRemoteSubmissions,
   isRemoteConfigured,
@@ -49,6 +50,7 @@ export function getStudentNumber(student: StudentProfile): string {
 export function getTargetStudents(assessment: Assessment, students: StudentProfile[]): StudentProfile[] {
   return students.filter((student) => {
     if (student.grade !== assessment.targetGrade) return false;
+    if (assessment.slots && assessment.slots.length > 0) return findStudentSlot(assessment, student) !== null;
     if (assessment.block === 'COMMON') return true;
     return student.courses.some(
       (c) =>

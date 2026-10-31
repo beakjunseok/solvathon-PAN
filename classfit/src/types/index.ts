@@ -81,6 +81,14 @@ export interface Submission {
   feedback: string;
 }
 
+// 수행평가를 보는 시간표 칸. 선택과목은 block, 일반 과목은 classNum을 쓴다.
+export interface AssessmentSlot {
+  date: string; // YYYY-MM-DD
+  period: number;
+  block?: BlockId;
+  classNum?: number;
+}
+
 export interface Assessment {
   id: string;
   subject: string;
@@ -97,6 +105,7 @@ export interface Assessment {
   createdAt: string;
   documents?: FileRef[];
   submission?: SubmissionSettings;
+  slots?: AssessmentSlot[];
 }
 
 export interface MatchedAssessment extends Assessment {

@@ -6,6 +6,7 @@ function cleanProfile(profile) {
   if (!profile || ![1, 2, 3].includes(profile.grade) || !Array.isArray(profile.courses)) return null;
   return {
     grade: profile.grade,
+    classNum: Number(profile.classNum) || 0,
     courses: profile.courses.slice(0, MAX_PROFILE_COURSES).map((course) => ({
       block: String(course.block).slice(0, 10),
       subject: String(course.subject).slice(0, 50),

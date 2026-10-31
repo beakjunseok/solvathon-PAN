@@ -16,6 +16,7 @@ function toKeyBytes(key: string): Uint8Array {
 function toProfile(student: StudentProfile) {
   return {
     grade: student.grade,
+    classNum: student.classNum,
     courses: student.courses,
     completedAssessments: student.completedAssessments,
   };
