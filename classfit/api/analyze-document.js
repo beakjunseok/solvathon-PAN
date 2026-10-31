@@ -1,5 +1,5 @@
 // Gemini 키를 브라우저에 노출하지 않도록 서버에서 문서를 분석한다.
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'];
 const MAX_BASE64_LENGTH = 4 * 1024 * 1024;
