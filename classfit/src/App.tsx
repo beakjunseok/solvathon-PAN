@@ -51,9 +51,9 @@ import { LoginPortal } from './components/LoginPortal';
 import { ComciganImportModal } from './components/ComciganImportModal';
 import { PhoneNotificationModal } from './components/PhoneNotificationModal';
 import { TeacherAccessDeniedModal } from './components/TeacherAccessDeniedModal';
-import { RiroFullMenuModal } from './components/RiroFullMenuModal';
+import { FullMenuModal } from './components/FullMenuModal';
 import { MyPageView } from './components/MyPageView';
-import { RiroBottomBar } from './components/RiroBottomBar';
+import { BottomNavBar } from './components/BottomNavBar';
 import { Sparkles, GraduationCap, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
@@ -617,7 +617,7 @@ export default function App() {
       )}
 
       {/* Riroschool Full Menu Drawer Modal (Exact match to Screenshot 2) */}
-      <RiroFullMenuModal
+      <FullMenuModal
         isOpen={isFullMenuOpen}
         onClose={() => setIsFullMenuOpen(false)}
         student={activeStudent}
@@ -684,7 +684,7 @@ export default function App() {
 
       {/* Persistent Bottom App Bar for Student Role (Exact match to screenshot) */}
       {currentRole === 'student' && (
-        <RiroBottomBar
+        <BottomNavBar
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           onRefresh={() => {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MatchedAssessment, StudentProfile, WeeklyBlockSlot, Assessment } from '../types';
 import { formatDDay, getDetailedTimeRemaining } from '../utils/scheduleMatcher';
 import { JungsanLogo } from './JungsanLogo';
-import { StudentIdCardModal } from './RiroschoolModals';
+import { StudentIdCardModal } from './StudentIdModals';
 import { CircularDDayProgress } from './CircularDDayProgress';
 import {
   ArrowLeft,

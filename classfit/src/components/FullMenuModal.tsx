@@ -14,7 +14,7 @@ import {
   LucideIcon,
 } from 'lucide-react';
 
-interface RiroFullMenuModalProps {
+interface FullMenuModalProps {
   isOpen: boolean;
   onClose: () => void;
   student: StudentProfile;
@@ -34,7 +34,7 @@ interface MenuItem {
   action?: () => void;
 }
 
-export const RiroFullMenuModal: React.FC<RiroFullMenuModalProps> = ({
+export const FullMenuModal: React.FC<FullMenuModalProps> = ({
   isOpen,
   onClose,
   student,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Home, ArrowLeft, ArrowRight, RotateCw, User } from 'lucide-react';
 
-interface RiroBottomBarProps {
+interface BottomNavBarProps {
   activeTab: 'home' | 'schedule' | 'matrix' | 'mypage';
   onSelectTab: (tab: 'home' | 'schedule' | 'matrix' | 'mypage') => void;
   onRefresh?: () => void;
@@ -9,7 +9,7 @@ interface RiroBottomBarProps {
   onGoForward?: () => void;
 }
 
-export const RiroBottomBar: React.FC<RiroBottomBarProps> = ({
+export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   activeTab,
   onSelectTab,
   onRefresh,
@@ -71,7 +71,7 @@ export const RiroBottomBar: React.FC<RiroBottomBarProps> = ({
 
       {/* Persistent Bottom App Navigation Bar (Replicating exact 5-button bar from screenshot) */}
       <nav
-        aria-label="하단 리로서쿨 내비게이션 바"
+        aria-label="하단 내비게이션 바"
         className="fixed bottom-0 left-0 right-0 z-40 bg-white/98 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] select-none"
       >
         <div className="max-w-md md:max-w-xl mx-auto h-16 grid grid-cols-5 items-center px-1 text-center">
