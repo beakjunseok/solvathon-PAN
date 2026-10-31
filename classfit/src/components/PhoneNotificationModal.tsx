@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MatchedAssessment, StudentProfile } from '../types';
 import { getDetailedTimeRemaining } from '../utils/scheduleMatcher';
+import { IphoneNotificationPreview } from './IphoneNotificationPreview';
 import {
   disableDailyPush,
   enableDailyPush,
@@ -55,7 +56,7 @@ interface PhoneNotificationModalProps {
   onToggleSupply?: (assessmentId: string, item: string) => void;
 }
 
-type DeviceMode = 'galaxy' | 'ipados' | 'galaxytab';
+type DeviceMode = 'galaxy' | 'iphone' | 'ipados' | 'galaxytab';
 
 export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
   student,
@@ -285,14 +286,14 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
       {/* Main Container Modal */}
       <div
         className={`relative w-full ${
-          deviceMode === 'galaxy'
+          deviceMode === 'galaxy' || deviceMode === 'iphone'
             ? 'max-w-xl'
             : deviceMode === 'ipados'
             ? 'max-w-4xl'
             : 'max-w-4xl'
         } bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] transition-all duration-300`}
       >
-        {/* Top Control Bar with 3-Way Device Switcher */}
+        {/* Top Control Bar with Device Switcher */}
         <div className="p-4 sm:p-5 border-b border-slate-800 bg-slate-900/95 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold border border-amber-400/30">
@@ -304,6 +305,8 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                 <span className="text-xs text-amber-300 font-medium">
                   {deviceMode === 'galaxy'
                     ? '갤럭시 폰 One UI'
+                    : deviceMode === 'iphone'
+                    ? 'iPhone 알림 센터'
                     : deviceMode === 'ipados'
                     ? 'iPadOS 알림 센터'
                     : '갤럭시 탭 와이드'}
@@ -316,7 +319,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 3-Way Device Toggle Tabs */}
+            {/* Device Toggle Tabs */}
             <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setDeviceMode('galaxy')}
@@ -328,6 +331,17 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
               >
                 <Smartphone className="w-3.5 h-3.5" />
                 <span>갤럭시 폰</span>
+              </button>
+              <button
+                onClick={() => setDeviceMode('iphone')}
+                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                  deviceMode === 'iphone'
+                    ? 'bg-amber-400 text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>아이폰</span>
               </button>
               <button
                 onClick={() => setDeviceMode('ipados')}
@@ -738,6 +752,20 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
           {/* ========================================================================= */}
           {/* MODE 2: iPadOS NOTIFICATION CENTER (Apple iPad 2-Column Wide View)        */}
           {/* ========================================================================= */}
+          {deviceMode === 'iphone' && (
+            <IphoneNotificationPreview
+              assessment={closestAssessment}
+              badge={timeInfo?.humanBadge || 'D-Day'}
+              periodTime={timeInfo?.periodTime || ''}
+              dateText={currentDateApple}
+              timeText={currentTime24}
+              checkedSupplies={checkedSupplies}
+              onOpenDetail={onOpenDetailModal}
+              onOpenCampusMap={onOpenCampusMap}
+              onToggleSupply={onToggleSupply}
+            />
+          )}
+
           {deviceMode === 'ipados' && (
             <div
               className="w-full max-w-[820px] bg-black/95 rounded-[36px] border-4 border-slate-700/80 p-5 sm:p-7 shadow-2xl relative select-none font-sans text-white animate-in zoom-in-95 duration-200"
