@@ -127,6 +127,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
 
   // Real Web Browser Notification API Trigger
   const triggerRealWebNotification = async () => {
+    setWebNotificationError(null);
     if (!('Notification' in window)) {
       setWebNotificationError('이 브라우저는 웹 알림(Notification API)을 지원하지 않습니다.');
       return;
@@ -149,13 +150,21 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
             `남은 시간: ${timeInfo?.detailedText || '임박'} | 준비물: ${closestAssessment.supplies.join(', ') || '없음'}`
           : '현재 예정된 급한 수행평가가 없습니다.';
 
-        new Notification(title, {
+        const options = {
           body,
-          icon: '/favicon.ico',
+          icon: '/assets/aistudio/images_0069c149.png',
           tag: 'jungsan-assessment-top-notification',
-          badge: '/favicon.ico',
-          vibrate: [200, 100, 200] as any,
-        } as any);
+          vibrate: [200, 100, 200],
+        };
+
+        // 모바일 브라우저는 new Notification을 막으므로 서비스 워커를 먼저 사용한다.
+        if ('serviceWorker' in navigator) {
+          await navigator.serviceWorker.register('/sw.js');
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(title, options);
+        } else {
+          new Notification(title, options);
+        }
 
         setWebNotificationSent(true);
         setTimeout(() => setWebNotificationSent(false), 4000);
