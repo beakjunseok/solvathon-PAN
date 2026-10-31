@@ -188,7 +188,7 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-indigo-600" />
-                컴시간알리미 원본 데이터 ➔ {student.name} 학생 맞춤 시간표 오버레이 결과
+                예시 블록표 ➔ {student.name} 학생 맞춤 시간표 오버레이 결과
               </h3>
               {parsedData && (
                 <span className="text-[11px] text-slate-400">
@@ -201,7 +201,7 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
               {/* Left: Raw Comcigan Output */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <span className="font-bold text-slate-700">1. 컴시간알리미 원본 시간표</span>
+                  <span className="font-bold text-slate-700">1. 예시 블록표</span>
                   <span className="text-[10px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-bold">
                     내 과목·교실 불명
                   </span>
@@ -266,7 +266,7 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between flex-wrap gap-2">
           <div className="text-[11px] text-slate-500">
-            * 컴시간알리미 데이터 기반 주간 {isGrade3 ? 'E~H' : 'A~D'} 블록 7교시 배치표 자동 동기화
+            * 예시 데이터 기반 주간 {isGrade3 ? 'E~H' : 'A~D'} 블록 7교시 배치표 자동 동기화
           </div>
           <div className="flex items-center gap-2">
             <button

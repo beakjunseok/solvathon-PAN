@@ -321,10 +321,10 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
               <button
                 onClick={onOpenComciganModal}
                 className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
-                title="컴시간 시간표 불러오기"
+                title="실제 시간표 보기"
               >
                 <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                <span>컴시간 연동</span>
+                <span>시간표 보기</span>
               </button>
             )}
 

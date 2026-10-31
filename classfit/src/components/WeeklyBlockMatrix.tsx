@@ -62,7 +62,7 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
               className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-colors flex items-center gap-1.5 shadow-2xs"
             >
               <span>⚡</span>
-              컴시간알리미에서 시간표 가져오기
+              실제 시간표 보기
             </button>
           )}
 
