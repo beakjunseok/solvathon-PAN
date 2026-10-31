@@ -39,7 +39,7 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
 }) => {
   const [weekOffset, setWeekOffset] = useState(0);
   const { grade, classNum } = activeStudent;
-  const { rows, days, isLimited, isLoading, error } = useNeisTimetable(grade, classNum, weekOffset);
+  const { rows, days, isLimited, isLoading, error, isProjected } = useNeisTimetable(grade, classNum, weekOffset);
   const blockLabel = grade === 3 ? 'E, F, G, H' : 'A, B, C, D';
 
   const getSubject = (dayIndex: number, period: number) => {
@@ -146,6 +146,9 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
         </p>
       )}
       {error && <p className="text-xs font-semibold text-rose-700">{error}</p>}
+      {isProjected && (
+        <p className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">이 주는 NEIS에 없어 현재 시간표를 반복해 표시합니다. 방학과 공휴일은 반영되지 않습니다.</p>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-slate-200 text-xs">

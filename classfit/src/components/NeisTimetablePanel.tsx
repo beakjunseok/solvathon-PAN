@@ -12,7 +12,7 @@ const DAY_LABELS = ['월', '화', '수', '목', '금'];
 
 export const NeisTimetablePanel: React.FC<NeisTimetablePanelProps> = ({ grade, classNum }) => {
   const [weekOffset, setWeekOffset] = useState(0);
-  const { rows, days, isLimited, isLoading, error } = useNeisTimetable(grade, classNum, weekOffset);
+  const { rows, days, isLimited, isLoading, error, isProjected } = useNeisTimetable(grade, classNum, weekOffset);
 
   const maxPeriod = Math.max(0, ...rows.map((row) => row.period));
   const periods = Array.from({ length: maxPeriod }, (_, index) => index + 1);
@@ -63,6 +63,7 @@ export const NeisTimetablePanel: React.FC<NeisTimetablePanelProps> = ({ grade, c
         </p>
       )}
       {error && <p className="font-semibold text-rose-700">{error}</p>}
+      {isProjected && <p className="text-amber-800">이 주는 NEIS에 없어 현재 시간표를 반복해 표시합니다. 방학과 공휴일은 반영되지 않습니다.</p>}
 
       {isLoading ? (
         <p className="text-slate-500">시간표를 불러오는 중입니다.</p>

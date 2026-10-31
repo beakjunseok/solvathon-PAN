@@ -52,7 +52,7 @@ export const AssessmentSlotPicker: React.FC<AssessmentSlotPickerProps> = ({
   onChange,
 }) => {
   const [weekOffset, setWeekOffset] = useState(0);
-  const { rows, days, isLoading, error } = useNeisTimetable(grade, null, weekOffset);
+  const { rows, days, isLoading, error, isProjected } = useNeisTimetable(grade, null, weekOffset);
 
   // AI가 문서에서 찾은 날짜가 있는 주로 이동한다.
   useEffect(() => {
@@ -159,6 +159,7 @@ export const AssessmentSlotPicker: React.FC<AssessmentSlotPickerProps> = ({
       </div>
 
       {error && <p className="font-semibold text-rose-700">{error}</p>}
+      {isProjected && <p className="text-amber-800">이 주는 NEIS에 없어 현재 시간표를 반복해 표시합니다. 방학과 공휴일은 반영되지 않습니다.</p>}
       {!subject.trim() && <p className="text-slate-600">과목명을 먼저 고르면 시간표가 나타납니다.</p>}
       {subject.trim() && !isLoading && !error && !hasMatch && (
         <p className="font-semibold text-amber-800">
