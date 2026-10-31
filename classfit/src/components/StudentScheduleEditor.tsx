@@ -10,6 +10,12 @@ interface StudentScheduleEditorProps {
   onClose: () => void;
 }
 
+// '2층 3반'처럼 적어도 '2-3' 형식으로 맞춘다.
+function normalizeRoom(room: string): string {
+  const match = room.trim().match(/^(\d+)\s*층\s*(\d+)\s*반?$/);
+  return match ? `${match[1]}-${match[2]}` : room.trim();
+}
+
 export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
   student,
   onSave,
@@ -253,14 +259,15 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">이동 교실 / 특별실</label>
+                      <label className="block text-xs text-slate-500 mb-1">이동 교실 (층-반)</label>
                       <input
                         type="text"
-                        placeholder="예: 신관 3층 물리실 (선택 입력)"
+                        placeholder="예: 2층 3반이면 2-3"
                         value={course.room}
                         onChange={(e) =>
                           handleUpdateCourse(block, 'room', e.target.value)
                         }
+                        onBlur={(e) => handleUpdateCourse(block, 'room', normalizeRoom(e.target.value))}
                         className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
