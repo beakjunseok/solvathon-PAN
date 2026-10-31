@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StudentProfile, WeeklyBlockSlot } from '../types';
 import { generateComciganTimetable, convertComciganToWeeklySchedule, ComciganSlot } from '../utils/comciganService';
+import { NeisTimetablePanel } from './NeisTimetablePanel';
 import { JungsanLogo } from './JungsanLogo';
 import {
   Download,
@@ -79,11 +80,11 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
                   학급 시간표 불러오기
                 </h2>
                 <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
-                  시연용 예시 데이터
+                  NEIS + 시연용 블록표
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                앱에 내장된 예시 시간표에 내 선택과목 블록({isGrade3 ? 'E~H' : 'A~D'})을 겹쳐 보여 줍니다. 컴시간알리미 서버에 연결하지는 않습니다.
+                위쪽은 NEIS 실제 학급 시간표이고, 아래쪽은 예시 블록표에 내 선택과목({isGrade3 ? 'E~H' : 'A~D'})을 겹쳐 보여 주는 화면입니다.
               </p>
             </div>
           </div>
@@ -109,6 +110,9 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
               이 화면은 주간 블록표에 <strong>학생의 개인 선택과목과 교실을 겹쳐</strong> 보여 줍니다.
             </p>
           </div>
+
+          {/* Real class timetable from NEIS */}
+          <NeisTimetablePanel grade={selectedGrade} classNum={selectedClass} />
 
           {/* School & Class Selector */}
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
