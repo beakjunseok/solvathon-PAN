@@ -79,7 +79,7 @@ WeeklyBlockSlot = { day, period, block, label };
 
 ## 4. 실행 링크·실행 방법
 
-- 배포 링크: _(Vercel 주소 입력)_
+- 배포 링크: https://classfit-nine.vercel.app/
 - 로컬 실행: `classfit/.env.example`을 `.env.local`로 복사해 값을 채운 뒤, `classfit` 폴더에서 `npm install`, `npm run dev`
 - 서버 준비: Supabase SQL Editor에서 `classfit/supabase/schema.sql`을 실행합니다. 값이 없으면 브라우저 저장으로만 동작합니다.
 - 시연 데이터: 학생, 교사, 시간표, 수행평가는 모두 가짜 데이터입니다. 교원 인증번호는 시연용 `1234`입니다.
