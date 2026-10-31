@@ -75,10 +75,12 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
       completedAssessments: [],
     };
 
+    // 등록 함수가 로그인까지 처리한다. 여기서 다시 로그인하면 갱신 전 명단을 읽어 이름이 사라진다.
     if (onRegisterNewStudent) {
       onRegisterNewStudent(newStudent);
+    } else {
+      onLoginAsStudent(newStudent.id);
     }
-    onLoginAsStudent(newStudent.id);
   };
 
   return (
