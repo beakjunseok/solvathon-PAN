@@ -104,7 +104,7 @@ settings:   layouts(학년별 블록 위치), overrides(반별 시간표 수정)
 
 | 시험 | 방법 | 결과 |
 | --- | --- | --- |
-| 핵심 로직 15개 | GitHub Actions 자동 테스트 (`classfit/src/utils/core.test.ts`) | 통과 |
+| 핵심 로직 16개 | GitHub Actions 자동 테스트 (`classfit/src/utils/core.test.ts`) | 통과 |
 | 블록 위치 | 컴시간 캡처를 NEIS 학년 전체 시간표와 비교 | 2학년 11개 반, 3학년 12개 반 모두 일치 |
 | 평가 공개 범위 | 5반 칸으로 등록 후 2-5, 3-1 학생 화면 비교 | 해당 학생에게만 표시 |
 | 제출과 채점 | 학생 제출 → 교사 채점 → 학생 피드백 확인 | 통과 |
