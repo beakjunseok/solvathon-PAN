@@ -348,6 +348,8 @@ export default function App() {
           />
         ) : currentRole === 'teacher' ? (
           <TeacherDashboard
+            students={students}
+            defaultTeacherName={authUser.role === 'teacher' ? authUser.name : ''}
             assessments={assessments}
             weeklySchedule={weeklySchedule}
             onAddAssessment={handleAddAssessment}
@@ -428,6 +430,12 @@ export default function App() {
       {selectedAssessmentForModal && (
         <AssessmentDetailModal
           assessment={selectedAssessmentForModal}
+          student={activeStudent}
+          onSubmitted={() => {
+            if (!activeStudent.completedAssessments.includes(selectedAssessmentForModal.id)) {
+              handleToggleComplete(selectedAssessmentForModal.id);
+            }
+          }}
           onClose={() => setSelectedAssessmentForModal(null)}
           checkedSupplies={activeStudent.checkedSupplies[selectedAssessmentForModal.id] || []}
           onToggleSupply={(item) => handleToggleSupply(selectedAssessmentForModal.id, item)}

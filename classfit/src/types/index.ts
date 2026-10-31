@@ -51,6 +51,34 @@ export type AssessmentType =
   | '포트폴리오'
   | '단원평가';
 
+export interface FileRef {
+  name: string;
+  path: string;
+  size: number;
+}
+
+export type SubmissionMode = 'text' | 'file' | 'both';
+
+export interface SubmissionSettings {
+  enabled: boolean;
+  mode: SubmissionMode;
+  deadline: string; // YYYY-MM-DDTHH:mm
+}
+
+export interface Submission {
+  id: string;
+  assessmentId: string;
+  studentId: string;
+  studentName: string;
+  studentNumber: string;
+  content: string;
+  files: FileRef[];
+  submittedAt: string;
+  isLate: boolean;
+  score: number | null;
+  feedback: string;
+}
+
 export interface Assessment {
   id: string;
   subject: string;
@@ -65,6 +93,8 @@ export interface Assessment {
   criteria: string[];
   teacherName: string;
   createdAt: string;
+  documents?: FileRef[];
+  submission?: SubmissionSettings;
 }
 
 export interface MatchedAssessment extends Assessment {

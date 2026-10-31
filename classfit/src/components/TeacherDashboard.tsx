@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { Assessment, BlockId, AssessmentType, WeeklyBlockSlot } from '../types';
+import { Assessment, BlockId, AssessmentType, FileRef, StudentProfile, SubmissionMode, SubmissionSettings, WeeklyBlockSlot } from '../types';
 import { getDayOfWeekFromDate, getPeriodForBlockAndDate, DAY_KOREAN, TODAY_DATE_STR, getClosestTeacherAssessment, getDetailedTimeRemaining } from '../utils/scheduleMatcher';
-import { Plus, Trash2, Edit3, Calendar, Clock, BookOpen, AlertCircle, CheckCircle, Tag, Sparkles, X, Filter } from 'lucide-react';
+import { FILE_ACCEPT, isRemoteConfigured, uploadFile, validateFile } from '../utils/remoteStore';
+import { SubmissionStatusModal } from './SubmissionStatusModal';
+import { Plus, Trash2, Edit3, Calendar, Clock, BookOpen, AlertCircle, CheckCircle, Tag, Sparkles, X, Filter, Upload, ClipboardList } from 'lucide-react';
 
 interface TeacherDashboardProps {
+  students: StudentProfile[];
+  defaultTeacherName: string;
   assessments: Assessment[];
   weeklySchedule: WeeklyBlockSlot[];
   onAddAssessment: (newAsmt: Assessment) => void;
@@ -32,7 +36,17 @@ const COMMON_SUPPLIES = [
   '개인 학습지 철',
 ];
 
+function getDefaultDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
+  students,
+  defaultTeacherName,
   assessments,
   weeklySchedule,
   onAddAssessment,
@@ -47,20 +61,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   // Form State
   const [targetGrade, setTargetGrade] = useState(3);
   const [block, setBlock] = useState<BlockId>('E');
-  const [subject, setSubject] = useState('물리Ⅱ');
+  const [subject, setSubject] = useState('');
   const [title, setTitle] = useState('');
   const [type, setType] = useState<AssessmentType>('실험/탐구');
-  const [date, setDate] = useState('2026-10-30');
-  const [supplies, setSupplies] = useState<string[]>(['공학용 계산기', '실험 가운']);
+  const [date, setDate] = useState(getDefaultDate());
+  const [supplies, setSupplies] = useState<string[]>([]);
   const [newSupplyInput, setNewSupplyInput] = useState('');
   const [description, setDescription] = useState('');
-  const [criteria, setCriteria] = useState<string[]>([
-    '실험 설계 및 가설 검증의 적절성 (40점)',
-    '데이터 해석 및 오차 원인 분석 (35점)',
-    '보고서 작성 양식 및 제출 기한 준수 (25점)',
-  ]);
+  const [criteria, setCriteria] = useState<string[]>([]);
   const [newCriterionInput, setNewCriterionInput] = useState('');
-  const [teacherName, setTeacherName] = useState('박물리 선생님');
+  const [teacherName, setTeacherName] = useState(defaultTeacherName);
+  const [documents, setDocuments] = useState<FileRef[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [submissionEnabled, setSubmissionEnabled] = useState(false);
+  const [submissionMode, setSubmissionMode] = useState<SubmissionMode>('both');
+  const [submissionDeadline, setSubmissionDeadline] = useState('');
+  const [statusAssessment, setStatusAssessment] = useState<Assessment | null>(null);
 
   // Preview of period based on date and block
   const previewCalculation = getPeriodForBlockAndDate(block, date, weeklySchedule);
@@ -72,20 +89,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const resetForm = () => {
     setTargetGrade(3);
     setBlock('E');
-    setSubject('물리Ⅱ');
+    setSubject('');
     setTitle('');
     setType('실험/탐구');
-    setDate('2026-10-30');
-    setSupplies(['공학용 계산기', '실험 가운']);
+    setDate(getDefaultDate());
+    setSupplies([]);
     setNewSupplyInput('');
     setDescription('');
-    setCriteria([
-      '실험 설계 및 가설 검증의 적절성 (40점)',
-      '데이터 해석 및 오차 원인 분석 (35점)',
-      '보고서 작성 양식 및 제출 기한 준수 (25점)',
-    ]);
+    setCriteria([]);
     setNewCriterionInput('');
-    setTeacherName('박물리 선생님');
+    setTeacherName(defaultTeacherName);
+    setDocuments([]);
+    setUploadError('');
+    setSubmissionEnabled(false);
+    setSubmissionMode('both');
+    setSubmissionDeadline('');
     setEditingId(null);
   };
 
@@ -121,6 +139,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setDescription(asmt.description);
     setCriteria(asmt.criteria || []);
     setTeacherName(asmt.teacherName);
+    setDocuments(asmt.documents || []);
+    setSubmissionEnabled(Boolean(asmt.submission?.enabled));
+    setSubmissionMode(asmt.submission?.mode || 'both');
+    setSubmissionDeadline(asmt.submission?.deadline || '');
     setIsModalOpen(true);
   };
 
@@ -148,6 +170,37 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setCriteria(criteria.filter((_, i) => i !== idx));
   };
 
+  const buildSubmissionSettings = (): SubmissionSettings | undefined => {
+    if (!submissionEnabled) return undefined;
+    return {
+      enabled: true,
+      mode: submissionMode,
+      deadline: submissionDeadline || `${date}T23:59`,
+    };
+  };
+
+  const handleUploadDocuments = async (selected: FileList | null) => {
+    if (!selected || selected.length === 0) return;
+    setUploadError('');
+    setIsUploading(true);
+    try {
+      const uploaded: FileRef[] = [];
+      for (const file of Array.from(selected)) {
+        const invalid = validateFile(file);
+        if (invalid) {
+          setUploadError(invalid);
+          continue;
+        }
+        uploaded.push(await uploadFile('assessments', file));
+      }
+      setDocuments((current) => [...current, ...uploaded]);
+    } catch {
+      setUploadError('문서를 올리지 못했습니다. Supabase 설정을 확인해 주세요.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !subject.trim()) return;
@@ -165,6 +218,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         description,
         criteria,
         teacherName,
+        documents,
+        submission: buildSubmissionSettings(),
         createdAt: new Date().toISOString(),
       };
       onUpdateAssessment(updated);
@@ -181,6 +236,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         description,
         criteria,
         teacherName,
+        documents,
+        submission: buildSubmissionSettings(),
         createdAt: new Date().toISOString(),
       };
       onAddAssessment(newAsmt);
@@ -195,7 +252,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     if (filterGrade === '1_2' && a.targetGrade === 3) return false;
     if (filterBlock === 'ALL') return true;
     return a.block === filterBlock;
-  });
+  }).sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 py-6">
@@ -450,6 +507,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     </div>
 
                     {/* Supplies Chips */}
+                    {(asmt.documents?.length || asmt.submission?.enabled) && (
+                      <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-600">
+                        {!!asmt.documents?.length && <span>문서 {asmt.documents.length}개</span>}
+                        {asmt.submission?.enabled && (
+                          <span>제출 마감 {asmt.submission.deadline.replace('T', ' ')}</span>
+                        )}
+                      </div>
+                    )}
                     {asmt.supplies.length > 0 && (
                       <div className="flex items-center gap-1.5 flex-wrap pt-1">
                         <span className="text-[11px] font-semibold text-slate-500">준비물:</span>
@@ -467,6 +532,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                    {asmt.submission?.enabled && (
+                      <button
+                        onClick={() => setStatusAssessment(asmt)}
+                        className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <ClipboardList className="w-4 h-4" />
+                        제출 현황
+                      </button>
+                    )}
                     <button
                       onClick={() => handleOpenEditModal(asmt)}
                       className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -488,6 +562,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           })
         )}
       </div>
+
+      {statusAssessment && (
+        <SubmissionStatusModal
+          assessment={statusAssessment}
+          students={students}
+          onClose={() => setStatusAssessment(null)}
+        />
+      )}
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
@@ -631,6 +713,82 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     <span className="font-bold underline text-indigo-700">{previewCalculation.period}교시</span>에 실시됩니다.
                   </span>
                 </div>
+              </div>
+
+              {/* Assessment Documents */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <label className="block font-semibold text-slate-700">수행평가 안내 문서</label>
+                {isRemoteConfigured ? (
+                  <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-slate-400 rounded-lg font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
+                    <Upload className="w-4 h-4" />
+                    {isUploading ? '올리는 중입니다' : 'PDF, 한글, 워드 등 문서 올리기 (20MB 이하)'}
+                    <input
+                      type="file"
+                      multiple
+                      accept={FILE_ACCEPT}
+                      disabled={isUploading}
+                      className="sr-only"
+                      onChange={(e) => {
+                        handleUploadDocuments(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <p className="text-amber-700">서버가 연결되지 않아 문서를 올릴 수 없습니다. 내용은 아래에 직접 입력해 주세요.</p>
+                )}
+                {uploadError && <p className="font-semibold text-rose-700">{uploadError}</p>}
+                {documents.map((file) => (
+                  <div key={file.path} className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-slate-200">
+                    <span className="truncate text-slate-800">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDocuments(documents.filter((d) => d.path !== file.path))}
+                      className="text-slate-400 hover:text-rose-600 px-1"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Online Submission Settings */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <label className="flex items-center gap-2 font-semibold text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={submissionEnabled}
+                    onChange={(e) => setSubmissionEnabled(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  이 웹에서 과제 제출 받기 (디벗 제출)
+                </label>
+                {submissionEnabled && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-600 mb-1">제출 방식</label>
+                      <select
+                        value={submissionMode}
+                        onChange={(e) => setSubmissionMode(e.target.value as SubmissionMode)}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900"
+                      >
+                        <option value="both">글 작성 + 파일 첨부</option>
+                        <option value="text">글 작성만</option>
+                        <option value="file">파일 첨부만</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 mb-1">제출 마감</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={submissionDeadline || `${date}T23:59`}
+                        onChange={(e) => setSubmissionDeadline(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Description */}

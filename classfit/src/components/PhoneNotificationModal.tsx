@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MatchedAssessment, StudentProfile } from '../types';
 import { getDetailedTimeRemaining } from '../utils/scheduleMatcher';
-import {
+import { Wind,
   X,
   Clock,
   MapPin,
@@ -59,10 +59,10 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
   onToggleSupply,
 }) => {
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('galaxy');
-  const [currentTimeStr, setCurrentTimeStr] = useState('3:38');
-  const [currentTime24, setCurrentTime24] = useState('15:38');
-  const [currentDateStr, setCurrentDateStr] = useState('10월 24일 토요일');
-  const [currentDateApple, setCurrentDateApple] = useState('10월 24일 토요일');
+  const [currentTimeStr, setCurrentTimeStr] = useState('9:39');
+  const [currentTime24, setCurrentTime24] = useState('09:39');
+  const [currentDateStr, setCurrentDateStr] = useState('10월 31일 토요일');
+  const [currentDateApple, setCurrentDateApple] = useState('10월 31일 토요일');
   const [webNotificationSent, setWebNotificationSent] = useState(false);
   const [webNotificationError, setWebNotificationError] = useState<string | null>(null);
   const [showHeadsUpBanner, setShowHeadsUpBanner] = useState(false);
@@ -375,7 +375,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                   'Pretendard, -apple-system, BlinkMacSystemFont, "Samsung Sans", "Segoe UI", Roboto, sans-serif',
               }}
             >
-              {/* 1. Android Status Bar (Top Line: 3:38 / Icons / Battery 78%) */}
+              {/* 1. Android Status Bar (Top Line: 9:39 / Icons / Battery 92%) */}
               <div className="flex items-center justify-between text-xs text-white pt-1 pb-3 px-1">
                 <span className="font-semibold text-sm tracking-tight font-mono tabular-nums">{currentTimeStr}</span>
                 <div className="flex items-center gap-1.5 text-xs">
@@ -383,15 +383,15 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                   <Bluetooth className="w-3.5 h-3.5 text-slate-300" />
                   <Wifi className="w-3.5 h-3.5 text-slate-300" />
                   <div className="flex items-center gap-1 font-mono font-medium text-[11px] tabular-nums">
-                    <span>78%</span>
+                    <span>92%</span>
                     <div className="w-5 h-2.5 border border-white rounded-[2px] p-[1px] flex items-center">
-                      <div className="h-full bg-white w-[78%] rounded-[1px]"></div>
+                      <div className="h-full bg-white w-[92%] rounded-[1px]"></div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 2. Date & Header (10월 24일 토요일 / Gear Settings) */}
+              {/* 2. Date & Header (10월 31일 토요일 / Gear Settings) */}
               <div className="flex items-center justify-between px-1 mb-4">
                 <h3 className="text-xl font-bold text-white tracking-tight">{currentDateStr}</h3>
                 <div className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors">
@@ -600,44 +600,6 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                   </div>
                 )}
 
-                {/* Media Player Card */}
-                <div className="rounded-2xl bg-[#222226] p-3 shadow-md flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden relative border border-white/5">
-                      <img
-                        src="assets/aistudio/phone_shade_bg.jpg"
-                        alt="Album"
-                        className="w-full h-full object-cover opacity-60"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/80 bg-slate-900/60">
-                        싱어게인
-                      </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                        <span className="w-1.5 h-1.5 rounded-xs bg-slate-300"></span>
-                        <span>준석의 Melomania M100</span>
-                        <ChevronDown className="w-3 h-3 text-slate-500" />
-                      </div>
-                      <div className="text-xs font-bold text-white truncate">이무진 - 휘파람</div>
-                      <div className="text-[11px] text-slate-400 truncate">싱어게인 63호 가수</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-slate-300 shrink-0 pr-1">
-                    <SkipBack className="w-4 h-4 cursor-pointer hover:text-white" />
-                    <button onClick={() => setIsPlayingMusic(!isPlayingMusic)}>
-                      {isPlayingMusic ? (
-                        <Pause className="w-4 h-4 text-amber-400 cursor-pointer" />
-                      ) : (
-                        <Play className="w-4 h-4 cursor-pointer hover:text-white" />
-                      )}
-                    </button>
-                    <SkipForward className="w-4 h-4 cursor-pointer hover:text-white" />
-                  </div>
-                </div>
 
                 {/* Health Steps */}
                 <div className="rounded-2xl bg-[#222226] p-3 shadow-md flex items-center justify-between gap-2">
@@ -645,11 +607,11 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                     <div className="flex items-center gap-2 text-xs font-semibold text-white">
                       <span className="text-emerald-400 font-bold flex items-center gap-1 font-mono tabular-nums">
                         <Footprints className="w-3.5 h-3.5" />
-                        1,574걸음
+                        990걸음
                       </span>
-                      <span className="text-[11px] text-slate-400 font-normal">오후 2:50</span>
+                      <span className="text-[11px] text-slate-400 font-normal">오전 8:47</span>
                     </div>
-                    <p className="text-xs text-slate-300 mt-0.5">목표 걸음 수는 10,000걸음입니다.</p>
+                    <p className="text-xs text-slate-300 mt-0.5">목표 걸음 수는 10000걸음입니다.</p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
                 </div>
@@ -670,20 +632,20 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                 <div className="rounded-2xl bg-[#222226] p-3 shadow-md flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="text-[10px] text-slate-400 mb-0.5">
-                      17° 날씨날씨 강남구 일원동 · 오후 2:53
+                      11° 날씨날씨 강남구 일원동 · 오전 9:03
                     </div>
                     <div className="flex items-center gap-2">
-                      <Sun className="w-6 h-6 text-amber-400" />
+                      <Wind className="w-6 h-6 text-slate-300" />
                       <div>
-                        <span className="text-base font-bold text-white font-mono tabular-nums">17°</span>
-                        <span className="text-[11px] text-slate-400 ml-1.5 font-mono tabular-nums">17° / 14°</span>
-                        <div className="text-[10px] text-slate-400">어제보다 3°낮아요</div>
+                        <span className="text-base font-bold text-white font-mono tabular-nums">11°</span>
+                        <span className="text-[11px] text-slate-400 ml-1.5 font-mono tabular-nums">16° / 7°</span>
+                        <div className="text-[10px] text-slate-400">어제보다 2°높아요</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-[#00a896] text-white px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm shrink-0">
-                    <span>😊 미세미세 양호</span>
+                  <div className="bg-[#ee9a2e] text-white px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm shrink-0">
+                    <span>☹️ 미세미세 나쁨</span>
                   </div>
                 </div>
               </div>
@@ -852,7 +814,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                       <div>
                         <div className="text-xs text-slate-400">서울 강남구 일원동</div>
                         <div className="text-sm font-bold text-white font-mono tabular-nums">
-                          17° <span className="text-xs font-normal text-slate-400">대체로 맑음</span>
+                          11° <span className="text-xs font-normal text-slate-400">안개</span>
                         </div>
                       </div>
                     </div>
@@ -988,39 +950,6 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                     </div>
                   )}
 
-                  {/* Secondary Apple Card: Music Player */}
-                  <div className="apple-glass rounded-2xl p-3.5 border border-white/10 shadow-md flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden relative border border-white/10">
-                        <img
-                          src="assets/aistudio/phone_shade_bg.jpg"
-                          alt="Album"
-                          className="w-full h-full object-cover opacity-60"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 bg-slate-900/60">
-                          Apple Music
-                        </div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-white truncate">이무진 - 휘파람</div>
-                        <div className="text-[11px] text-slate-400 truncate">싱어게인 63호 가수 · Melomania M100</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3.5 text-slate-300 shrink-0 pr-2">
-                      <SkipBack className="w-4 h-4 cursor-pointer hover:text-white" />
-                      <button onClick={() => setIsPlayingMusic(!isPlayingMusic)}>
-                        {isPlayingMusic ? (
-                          <Pause className="w-5 h-5 text-amber-400 cursor-pointer" />
-                        ) : (
-                          <Play className="w-5 h-5 cursor-pointer hover:text-white" />
-                        )}
-                      </button>
-                      <SkipForward className="w-4 h-4 cursor-pointer hover:text-white" />
-                    </div>
-                  </div>
 
                   {/* Secondary Card: School Academic Notice */}
                   <div className="apple-glass rounded-2xl p-3.5 border border-white/10 shadow-md flex items-center justify-between gap-3">
@@ -1180,55 +1109,22 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                     )}
                   </div>
 
-                  {/* Media player */}
-                  <div className="bg-[#1e1e22] rounded-2xl p-3 border border-white/5 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden relative">
-                        <img
-                          src="assets/aistudio/phone_shade_bg.jpg"
-                          alt="Album"
-                          className="w-full h-full object-cover opacity-60"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 bg-slate-900/60">
-                          음악
-                        </div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-white truncate">이무진 - 휘파람</div>
-                        <div className="text-[11px] text-slate-400 truncate">준석의 Melomania M100</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-slate-300 shrink-0 pr-1">
-                      <SkipBack className="w-4 h-4 cursor-pointer hover:text-white" />
-                      <button onClick={() => setIsPlayingMusic(!isPlayingMusic)}>
-                        {isPlayingMusic ? (
-                          <Pause className="w-4 h-4 text-amber-400 cursor-pointer" />
-                        ) : (
-                          <Play className="w-4 h-4 cursor-pointer hover:text-white" />
-                        )}
-                      </button>
-                      <SkipForward className="w-4 h-4 cursor-pointer hover:text-white" />
-                    </div>
-                  </div>
 
                   {/* Health Steps & Weather */}
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="bg-[#1e1e22] rounded-2xl p-3 border border-white/5">
                       <div className="flex items-center gap-1 text-emerald-400 font-bold text-xs font-mono tabular-nums">
                         <Footprints className="w-3.5 h-3.5" />
-                        1,574걸음
+                        990걸음
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1">목표: 10,000걸음</p>
                     </div>
                     <div className="bg-[#1e1e22] rounded-2xl p-3 border border-white/5 flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-bold text-white font-mono tabular-nums">17°</div>
-                        <div className="text-[10px] text-slate-400">일원동 맑음</div>
+                        <div className="text-sm font-bold text-white font-mono tabular-nums">11°</div>
+                        <div className="text-[10px] text-slate-400">일원동 안개</div>
                       </div>
-                      <Sun className="w-6 h-6 text-amber-400" />
+                      <Wind className="w-6 h-6 text-slate-300" />
                     </div>
                   </div>
                 </div>

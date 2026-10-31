@@ -1,10 +1,14 @@
 import React from 'react';
-import { MatchedAssessment } from '../types';
+import { MatchedAssessment, StudentProfile } from '../types';
 import { formatDDay } from '../utils/scheduleMatcher';
-import { X, CheckCircle2, Circle, MapPin, Clock, Calendar, AlertCircle, FileText, User } from 'lucide-react';
+import { getFileUrl } from '../utils/remoteStore';
+import { SubmissionPanel } from './SubmissionPanel';
+import { X, CheckCircle2, Circle, MapPin, Clock, Calendar, AlertCircle, FileText, User, Download } from 'lucide-react';
 
 interface AssessmentDetailModalProps {
   assessment: MatchedAssessment | null;
+  student: StudentProfile;
+  onSubmitted: () => void;
   onClose: () => void;
   checkedSupplies: string[];
   onToggleSupply: (supplyItem: string) => void;
@@ -13,6 +17,8 @@ interface AssessmentDetailModalProps {
 
 export const AssessmentDetailModal: React.FC<AssessmentDetailModalProps> = ({
   assessment,
+  student,
+  onSubmitted,
   onClose,
   checkedSupplies,
   onToggleSupply,
@@ -106,6 +112,31 @@ export const AssessmentDetailModal: React.FC<AssessmentDetailModalProps> = ({
               {assessment.description}
             </p>
           </div>
+
+          {/* Assessment documents */}
+          {assessment.documents && assessment.documents.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-slate-400" />
+                평가 문서
+              </h3>
+              <div className="flex flex-col gap-2">
+                {assessment.documents.map((file) => (
+                  <a
+                    key={file.path}
+                    href={getFileUrl(file)}
+                    className="flex items-center justify-between gap-2 min-h-11 p-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-indigo-700 hover:bg-slate-50"
+                  >
+                    <span className="truncate">{file.name}</span>
+                    <Download className="w-4 h-4 shrink-0" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Online submission */}
+          <SubmissionPanel assessment={assessment} student={student} onSubmitted={onSubmitted} />
 
           {/* Supplies checklist */}
           <div>
