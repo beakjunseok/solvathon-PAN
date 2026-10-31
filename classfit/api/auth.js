@@ -60,6 +60,7 @@ function toSession(account) {
     id: account.id,
     role: account.role,
     name: account.name,
+    subject: account.role === 'teacher' ? account.profile?.subject || '' : '',
     profile: account.role === 'student' ? { ...account.profile, id: account.id } : null,
   };
 }
@@ -91,7 +92,8 @@ async function signupStudent(body) {
 
 async function signupTeacher(body) {
   const name = asName(body.name);
-  if (!name) return [400, { error: '성함을 입력해 주세요.' }];
+  const subject = asName(body.subject);
+  if (!name || !subject) return [400, { error: '성함과 담당 과목을 입력해 주세요.' }];
   if (!process.env.TEACHER_SIGNUP_CODE || body.signupCode !== process.env.TEACHER_SIGNUP_CODE) {
     return [403, { error: '교사 등록 코드가 맞지 않습니다.' }];
   }
@@ -104,7 +106,7 @@ async function signupTeacher(body) {
     role: 'teacher',
     name,
     password: body.password,
-    profile: {},
+    profile: { subject },
   });
   return [200, toSession(account)];
 }
@@ -137,8 +139,10 @@ async function login(body) {
     return [401, { error: LOGIN_ERROR }];
   }
 
-  await updateAccount(account.id, { failed_attempts: 0, locked_until: null });
-  return [200, toSession(account)];
+  const subject = asName(body.subject);
+  const profile = account.role === 'teacher' && subject ? { ...account.profile, subject } : account.profile;
+  await updateAccount(account.id, { failed_attempts: 0, locked_until: null, profile });
+  return [200, toSession({ ...account, profile })];
 }
 
 async function me(user) {

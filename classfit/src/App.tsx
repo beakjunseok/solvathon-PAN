@@ -360,7 +360,7 @@ export default function App() {
     const lines = [`오늘: ${toCompactDate(today)} (${'일월화수목금토'[today.getDay()]}요일)`];
 
     if (session?.role === 'teacher') {
-      lines.push(`교사: ${session.name}`, '등록된 수행평가:');
+      lines.push(`교사: ${session.name}`, `담당 과목: ${session.subject || '미입력'}`, '등록된 수행평가:');
       assessments.slice(0, 40).forEach((a) => {
         lines.push(`- ${a.date} ${a.targetGrade}학년 ${a.block} ${a.subject} ${a.title}`);
       });
@@ -458,6 +458,7 @@ export default function App() {
             onTimetableSaved={() => setSettingsVersion((version) => version + 1)}
             students={students}
             defaultTeacherName={authUser.role === 'teacher' ? authUser.name : ''}
+            defaultSubject={session.subject || ''}
             assessments={assessments}
             weeklySchedule={weeklySchedule}
             onAddAssessment={handleAddAssessment}

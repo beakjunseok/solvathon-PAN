@@ -5,6 +5,7 @@ export interface AuthSession {
   id: string;
   role: 'student' | 'teacher';
   name: string;
+  subject: string;
   profile: StudentProfile | null;
 }
 

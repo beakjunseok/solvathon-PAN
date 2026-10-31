@@ -19,6 +19,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoggedIn }) => {
   const [password, setPassword] = useState('');
   const [passwordCheck, setPasswordCheck] = useState('');
   const [signupCode, setSignupCode] = useState('');
+  const [subject, setSubject] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,7 +42,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoggedIn }) => {
     const action = !isSignup ? 'login' : role === 'student' ? 'signup-student' : 'signup-teacher';
     setIsBusy(true);
     try {
-      onLoggedIn(await authenticate({ action, role, studentNumber, name, password, signupCode }));
+      onLoggedIn(await authenticate({ action, role, studentNumber, name, password, signupCode, subject }));
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인하지 못했습니다.');
     } finally {
@@ -103,6 +104,21 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoggedIn }) => {
               className={`${INPUT_CLASS} mt-1`}
             />
           </label>
+
+          {role === 'teacher' && (
+            <label className="block text-sm font-medium text-slate-700">
+              담당 과목{!isSignup && ' (바꿀 때만 입력)'}
+              <input
+                required={isSignup}
+                maxLength={20}
+                autoComplete="off"
+                placeholder="예: 물리"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className={`${INPUT_CLASS} mt-1`}
+              />
+            </label>
+          )}
 
           <label className="block text-sm font-medium text-slate-700">
             비밀번호

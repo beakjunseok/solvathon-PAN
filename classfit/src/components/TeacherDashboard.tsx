@@ -9,6 +9,7 @@ import { Plus, Trash2, Edit3, Calendar, Clock, BookOpen, AlertCircle, CheckCircl
 interface TeacherDashboardProps {
   students: StudentProfile[];
   defaultTeacherName: string;
+  defaultSubject: string;
   onTimetableSaved: () => void;
   assessments: Assessment[];
   weeklySchedule: WeeklyBlockSlot[];
@@ -82,6 +83,7 @@ function getDefaultDate(): string {
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   students,
   defaultTeacherName,
+  defaultSubject,
   onTimetableSaved,
   assessments,
   weeklySchedule,
@@ -98,7 +100,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   // Form State
   const [targetGrade, setTargetGrade] = useState(3);
   const [block, setBlock] = useState<BlockId>('E');
-  const [subject, setSubject] = useState('');
+  const [subject, setSubject] = useState(defaultSubject);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<AssessmentType>('실험/탐구');
   const [date, setDate] = useState(getDefaultDate());
@@ -129,7 +131,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const resetForm = () => {
     setTargetGrade(3);
     setBlock('E');
-    setSubject('');
+    setSubject(defaultSubject);
     setTitle('');
     setType('실험/탐구');
     setDate(getDefaultDate());
@@ -155,12 +157,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       if (['A', 'B', 'C', 'D'].includes(block)) {
         setBlock('E');
       }
-      if (!subject || subject === '화학Ⅰ') setSubject('물리Ⅱ');
     } else {
       if (['E', 'F', 'G', 'H'].includes(block)) {
         setBlock('A');
       }
-      if (!subject || subject === '물리Ⅱ') setSubject('화학Ⅰ');
     }
     if (newGrade === 1) setBlock('COMMON');
   };
