@@ -36,6 +36,24 @@ const COMMON_SUPPLIES = [
   '개인 학습지 철',
 ];
 
+const ANALYZABLE_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'];
+const MAX_ANALYSIS_BYTES = 3 * 1024 * 1024;
+
+function getLocalDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(new Error('파일을 읽지 못했습니다.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function getDefaultDate(): string {
   const date = new Date();
   date.setDate(date.getDate() + 7);
@@ -74,6 +92,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [documents, setDocuments] = useState<FileRef[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [analysisFile, setAnalysisFile] = useState<File | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState('');
   const [submissionEnabled, setSubmissionEnabled] = useState(false);
   const [submissionMode, setSubmissionMode] = useState<SubmissionMode>('both');
   const [submissionDeadline, setSubmissionDeadline] = useState('');
@@ -101,6 +122,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setTeacherName(defaultTeacherName);
     setDocuments([]);
     setUploadError('');
+    setAnalysisFile(null);
+    setAnalysisMessage('');
     setSubmissionEnabled(false);
     setSubmissionMode('both');
     setSubmissionDeadline('');
@@ -192,12 +215,47 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           continue;
         }
         uploaded.push(await uploadFile('assessments', file));
+        if (ANALYZABLE_TYPES.includes(file.type) && file.size <= MAX_ANALYSIS_BYTES) {
+          setAnalysisFile(file);
+        }
       }
       setDocuments((current) => [...current, ...uploaded]);
     } catch {
       setUploadError('문서를 올리지 못했습니다. Supabase 설정을 확인해 주세요.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleAnalyzeDocument = async () => {
+    if (!analysisFile) return;
+    setIsAnalyzing(true);
+    setUploadError('');
+    setAnalysisMessage('');
+    try {
+      const data = await readFileAsBase64(analysisFile);
+      const response = await fetch('/api/analyze-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data, mimeType: analysisFile.type, today: getLocalDate(new Date()) }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+
+      if (result.targetGrade) handleGradeChangeInForm(result.targetGrade);
+      if (result.block) setBlock(result.block);
+      if (result.subject) setSubject(result.subject);
+      if (result.title) setTitle(result.title);
+      if (result.type) setType(result.type);
+      if (result.date) setDate(result.date);
+      if (result.description) setDescription(result.description);
+      if (result.supplies.length > 0) setSupplies(result.supplies);
+      if (result.criteria.length > 0) setCriteria(result.criteria);
+      setAnalysisMessage('문서 내용을 채웠습니다. 등록 전에 반드시 확인해 주세요.');
+    } catch (err) {
+      setUploadError(err instanceof Error && err.message ? err.message : '문서를 분석하지 못했습니다.');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -738,6 +796,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   <p className="text-amber-700">서버가 연결되지 않아 문서를 올릴 수 없습니다. 내용은 아래에 직접 입력해 주세요.</p>
                 )}
                 {uploadError && <p className="font-semibold text-rose-700">{uploadError}</p>}
+                {analysisFile && (
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeDocument}
+                    disabled={isAnalyzing}
+                    className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-lg flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {isAnalyzing ? '문서를 읽는 중입니다' : `AI로 ${analysisFile.name} 내용 채우기`}
+                  </button>
+                )}
+                {analysisMessage && <p className="font-semibold text-emerald-700">{analysisMessage}</p>}
                 {documents.map((file) => (
                   <div key={file.path} className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-slate-200">
                     <span className="truncate text-slate-800">{file.name}</span>
