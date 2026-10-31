@@ -172,6 +172,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const handleGradeChangeInForm = (newGrade: number) => {
     setTargetGrade(newGrade);
     setSlots([]);
+    // 학년이 바뀌면 그 학년의 내 과목으로 맞춘다.
+    const nextSubjects = schoolSubjects.filter((item) => item.grades.includes(newGrade)).map((item) => item.name);
+    if (nextSubjects.length > 0 && !nextSubjects.includes(subject)) {
+      setSubject(teacherSubjects.find((name) => nextSubjects.includes(name)) || '');
+    }
     if (newGrade === 3) {
       if (['A', 'B', 'C', 'D'].includes(block)) {
         setBlock('E');
@@ -184,14 +189,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     if (newGrade === 1) setBlock('COMMON');
   };
 
-  // 과목을 고르면 그 과목이 있는 학년으로 맞춘다.
-  const handleChooseSubject = (name: string) => {
-    setSubject(name);
-    const grades = schoolSubjects.find((item) => item.name === name)?.grades || [];
-    if (grades.length > 0 && !grades.includes(targetGrade)) {
-      handleGradeChangeInForm(grades[0]);
-    }
-  };
+  const gradeSubjectNames = schoolSubjects
+    .filter((item) => item.grades.includes(targetGrade))
+    .map((item) => item.name);
+  const myGradeSubjects = teacherSubjects.filter((name) => gradeSubjectNames.includes(name));
 
   const handleSaveSubjects = async () => {
     setSubjectError('');
@@ -208,8 +209,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     resetForm();
     if (teacherSubjects.length > 0) {
       const grades = schoolSubjects.find((item) => item.name === teacherSubjects[0])?.grades || [];
+      if (grades.length > 0) setTargetGrade(grades[0]);
       setSubject(teacherSubjects[0]);
-      if (grades.length > 0) handleGradeChangeInForm(grades[0]);
     }
     setIsModalOpen(true);
   };
@@ -808,38 +809,35 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">과목명</label>
-                  <input
-                    type="text"
+                  <select
                     required
-                    list="assessment-subject-options"
-                    placeholder="시간표 과목명을 고르세요"
                     value={subject}
-                    onChange={(e) => handleChooseSubject(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value="">과목을 고르세요</option>
+                    {subject && !gradeSubjectNames.includes(subject) && <option value={subject}>{subject}</option>}
+                    {myGradeSubjects.length > 0 && (
+                      <optgroup label="내 과목">
+                        {myGradeSubjects.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label={`${targetGrade}학년 과목`}>
+                      {gradeSubjectNames
+                        .filter((name) => !myGradeSubjects.includes(name))
+                        .map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  </select>
                 </div>
               </div>
-
-              {teacherSubjects.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] text-slate-500">내 과목:</span>
-                  {teacherSubjects.map((name) => (
-                    <button
-                      key={name}
-                      type="button"
-                      aria-pressed={subject === name}
-                      onClick={() => handleChooseSubject(name)}
-                      className={`px-2.5 py-1 rounded-lg border font-medium transition-colors ${
-                        subject === name
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              )}
 
               {/* Title & Type */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

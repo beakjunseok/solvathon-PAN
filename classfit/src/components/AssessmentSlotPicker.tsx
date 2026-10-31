@@ -4,7 +4,7 @@ import { getBlockAt } from '../data/blockLayouts';
 import { NoClassDayCell } from './NoClassDayCell';
 import { formatSlot } from '../utils/scheduleMatcher';
 import { applyTimetableOverrides } from '../utils/schoolSettings';
-import { getTextbookSubjects, toCompactDate } from '../utils/textbookList';
+import { toCompactDate } from '../utils/textbookList';
 import { getWeekDays, useNeisTimetable } from '../utils/useNeisTimetable';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
@@ -71,10 +71,6 @@ export const AssessmentSlotPicker: React.FC<AssessmentSlotPickerProps> = ({
     );
   }, [rows, grade]);
 
-  const subjectOptions = useMemo(() => {
-    return getTextbookSubjects(finalRows).sort((a, b) => a.localeCompare(b, 'ko'));
-  }, [finalRows]);
-
   const hasMatch = finalRows.some((row) => isSameSubject(row.subject, subject));
 
   const toggleSlot = (slot: AssessmentSlot) => {
@@ -122,12 +118,6 @@ export const AssessmentSlotPicker: React.FC<AssessmentSlotPickerProps> = ({
 
   return (
     <div className="p-3.5 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2">
-      <datalist id="assessment-subject-options">
-        {subjectOptions.map((option) => (
-          <option key={option} value={option} />
-        ))}
-      </datalist>
-
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <p className="font-semibold text-slate-800">수행평가 볼 시간표 칸 선택</p>
@@ -161,10 +151,10 @@ export const AssessmentSlotPicker: React.FC<AssessmentSlotPickerProps> = ({
 
       {error && <p className="font-semibold text-rose-700">{error}</p>}
       {isProjected && <p className="text-amber-800">이 주는 NEIS에 시간표가 없어 현재 시간표를 반복해 표시합니다.</p>}
-      {!subject.trim() && <p className="text-slate-600">과목명을 먼저 고르면 시간표가 나타납니다.</p>}
+      {!subject.trim() && <p className="text-slate-600">과목을 먼저 고르면 시간표가 나타납니다.</p>}
       {subject.trim() && !isLoading && !error && !hasMatch && (
         <p className="font-semibold text-amber-800">
-          이 주 시간표에 “{subject}” 수업이 없습니다. 과목명을 목록에서 고르거나 다른 주로 이동해 보세요.
+          이 주 시간표에 “{subject}” 수업이 없습니다. 다른 주로 이동해 보세요.
         </p>
       )}
 
