@@ -91,7 +91,7 @@ export const RiroFullMenuModal: React.FC<RiroFullMenuModalProps> = ({
     {
       label: '내 정보',
       items: [
-        { title: '알림창 미리보기', icon: Bell, action: onOpenLockScreen },
+        { title: 'D-Day 알림 설정', icon: Bell, action: onOpenLockScreen },
         { title: '마이페이지', icon: User, action: goMyPage },
       ],
     },

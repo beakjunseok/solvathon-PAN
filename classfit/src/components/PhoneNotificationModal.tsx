@@ -409,6 +409,32 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
           </div>
         </div>
 
+        {/* Daily Notification Guide */}
+        <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 text-xs text-slate-300 space-y-2">
+          <p className="font-bold text-white">
+            {isDailyPushOn ? '매일 D-Day 알림이 켜져 있습니다.' : '매일 D-Day 알림 켜는 방법'}
+          </p>
+          {isDailyPushOn ? (
+            <p>매일 오전 7시쯤 D-Day가 바뀐 알림이 옵니다. 알림을 지워도 다음 갱신 때 다시 나타납니다.</p>
+          ) : (
+            <>
+              <ol className="list-decimal pl-4 space-y-1">
+                <li>휴대폰이나 디벗의 Chrome으로 이 사이트를 엽니다.</li>
+                <li>위의 초록색 <strong className="text-white">매일 D-Day 알림 켜기</strong>를 누릅니다.</li>
+                <li>알림을 보내도 되는지 묻는 창에서 <strong className="text-white">허용</strong>을 누릅니다.</li>
+                <li>상단에 D-Day 알림이 뜨면 완료입니다.</li>
+              </ol>
+              <p className="text-slate-400">
+                허용 창이 안 나오면 주소창 왼쪽 아이콘 → 권한 → 알림을 허용으로 바꾼 뒤 새로고침하세요.
+                아이폰은 Safari 공유 버튼 → 홈 화면에 추가 후, 추가된 앱에서 켜야 합니다.
+              </p>
+            </>
+          )}
+          {!isDailyPushSupported && (
+            <p className="text-rose-400">이 브라우저는 알림을 지원하지 않습니다. Chrome에서 열어 주세요.</p>
+          )}
+        </div>
+
         {/* Scrollable Viewport: Device UI Render */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-950 flex justify-center items-start">
           {/* ========================================================================= */}
