@@ -1,0 +1,6 @@
+{
+  "framework": "vite",
+  "installCommand": "cd classfit && npm install --no-audit --no-fund",
+  "buildCommand": "cd classfit && npx vite build",
+  "outputDirectory": "classfit/dist"
+}

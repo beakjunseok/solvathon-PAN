@@ -486,7 +486,7 @@ export const CampusMapModal: React.FC<CampusMapModalProps> = ({ initialRoom, onC
                 </div>
                 <div className="rounded-xl overflow-hidden border border-slate-200 bg-black flex items-center justify-center max-h-[460px]">
                   <img
-                    src="/assets/aistudio/20261024_155035_9d36a47f.jpg"
+                    src="assets/aistudio/20261024_155035_9d36a47f.jpg"
                     alt="중산고등학교 전체 층 안내도"
                     className="w-full h-auto object-contain hover:scale-105 transition-transform duration-300"
                   />
@@ -507,7 +507,7 @@ export const CampusMapModal: React.FC<CampusMapModalProps> = ({ initialRoom, onC
                 </div>
                 <div className="rounded-xl overflow-hidden border border-slate-200 bg-black flex items-center justify-center max-h-[460px]">
                   <img
-                    src="/assets/aistudio/20261024_155032_5b574dc0.jpg"
+                    src="assets/aistudio/20261024_155032_5b574dc0.jpg"
                     alt="공개수업의 날 및 동선 운영 안내"
                     className="w-full h-auto object-contain hover:scale-105 transition-transform duration-300"
                   />
@@ -530,7 +530,7 @@ export const CampusMapModal: React.FC<CampusMapModalProps> = ({ initialRoom, onC
               </span>
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-black flex items-center justify-center shadow-sm">
                 <img
-                  src="/assets/aistudio/20261024_155039_735c5dfe.jpg"
+                  src="assets/aistudio/20261024_155039_735c5dfe.jpg"
                   alt="중산고등학교 학교시간표 원본 사진"
                   className="w-full h-auto object-contain max-h-[480px]"
                 />

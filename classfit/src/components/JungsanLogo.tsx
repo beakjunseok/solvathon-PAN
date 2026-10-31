@@ -8,7 +8,7 @@ interface JungsanLogoProps {
 export const JungsanLogo: React.FC<JungsanLogoProps> = ({ className = 'w-9 h-9', size = 36 }) => {
   return (
     <img
-      src="/assets/aistudio/images_0069c149.png"
+      src="assets/aistudio/images_0069c149.png"
       alt="중산고등학교 로고"
       width={size}
       height={size}

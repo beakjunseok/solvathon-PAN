@@ -106,8 +106,8 @@ export function getWeeklyScheduleForGrade(grade: number): WeeklyBlockSlot[] {
 // 학생 프로필: 3학년은 E~H 블록, 1·2학년은 A~D 블록
 export const INITIAL_STUDENTS: StudentProfile[] = [
   {
-    id: 'student-baek-junseok',
-    name: '백준석',
+    id: 'student-demo-haneul',
+    name: '강하늘',
     grade: 3,
     classNum: 2,
     studentNum: 15,

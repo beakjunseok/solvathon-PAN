@@ -17,18 +17,8 @@ export interface ComciganSchoolResult {
   region: string;
 }
 
-// Known school codes in comcigan
-export const POPULAR_SCHOOLS: ComciganSchoolResult[] = [
-  { code: 39328, name: '중산고등학교', region: '서울특별시 강남구' },
-  { code: 13444, name: '중산고', region: '서울특별시 강남구' },
-  { code: 71239, name: '경기고등학교', region: '서울특별시 강남구' },
-  { code: 54123, name: '휘문고등학교', region: '서울특별시 강남구' },
-  { code: 48912, name: '단국대학교부속소프트웨어고', region: '서울특별시 강남구' },
-];
-
 /**
- * Generates an accurate Comcigan timetable for the given school, grade, and class.
- * Models real Jungsan High School Comcigan schedule:
+ * Returns a built-in sample timetable. It does not connect to the Comcigan server.
  * - Grade 3: E, F, G, H blocks for electives
  * - Grade 1 & 2: A, B, C, D blocks for electives
  */
@@ -48,7 +38,7 @@ export function generateComciganTimetable(
     { day: 'FRI', dayKorean: '금요일' },
   ];
 
-  // Base schedule template matching Jungsan High School's real timetable
+  // Sample schedule template for the demo
   // Day, Period -> { raw, isBlock, block }
   const template3rd: Record<string, { raw: string; isBlock: boolean; block: 'E' | 'F' | 'G' | 'H' | 'COMMON' }> = {
     'MON-1': { raw: '독서', isBlock: false, block: 'COMMON' },
@@ -161,7 +151,7 @@ export function generateComciganTimetable(
   return {
     slots,
     lastUpdated: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-    isRealtime: true,
+    isRealtime: false,
   };
 }
 

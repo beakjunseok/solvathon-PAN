@@ -44,7 +44,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher'>(initialRole);
   const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || '');
   const [teacherName, setTeacherName] = useState<string>('박물리 선생님');
-  const [teacherPasscode, setTeacherPasscode] = useState<string>('1234');
+  const [teacherPasscode, setTeacherPasscode] = useState<string>('');
   const [passcodeError, setPasscodeError] = useState<string>('');
 
   // New student direct creation form state
@@ -432,7 +432,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                     className="w-full sm:w-48 px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono"
                   />
                   <span className="text-[11px] text-slate-400">
-                    * 학생 계정 무단 접속 방지를 위한 교원 전용 인증
+                    * 시연용 화면 구분이며 실제 보안 기능은 아닙니다
                   </span>
                 </div>
                 {passcodeError && (

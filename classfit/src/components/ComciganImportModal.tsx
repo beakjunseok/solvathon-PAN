@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StudentProfile, WeeklyBlockSlot } from '../types';
-import { generateComciganTimetable, convertComciganToWeeklySchedule, POPULAR_SCHOOLS, ComciganSlot } from '../utils/comciganService';
+import { generateComciganTimetable, convertComciganToWeeklySchedule, ComciganSlot } from '../utils/comciganService';
 import { JungsanLogo } from './JungsanLogo';
 import {
   Download,
@@ -33,19 +33,13 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
   const [schoolSearchQuery, setSchoolSearchQuery] = useState('중산고등학교');
   const [selectedGrade, setSelectedGrade] = useState(student.grade);
   const [selectedClass, setSelectedClass] = useState(student.classNum);
-  const [isLoading, setIsLoading] = useState(false);
   const [parsedData, setParsedData] = useState<{ slots: ComciganSlot[]; lastUpdated: string } | null>(() => {
     return generateComciganTimetable('중산고등학교', student.grade, student.classNum);
   });
   const [appliedSuccess, setAppliedSuccess] = useState(false);
 
   const handleFetchComcigan = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const result = generateComciganTimetable(schoolSearchQuery, selectedGrade, selectedClass);
-      setParsedData(result);
-      setIsLoading(false);
-    }, 450);
+    setParsedData(generateComciganTimetable(schoolSearchQuery, selectedGrade, selectedClass));
   };
 
   const handleApplyToSystem = () => {
@@ -82,14 +76,14 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  컴시간알리미 (comci.kr) 시간표 실시간 가져오기
+                  학급 시간표 불러오기
                 </h2>
-                <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">
-                  실시간 연동
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
+                  시연용 예시 데이터
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                컴시간알리미 서버에서 중산고 학급 시간표를 조회하고, 내 선택과목 블록({isGrade3 ? 'E~H' : 'A~D'})을 자동 오버레이합니다.
+                앱에 내장된 예시 시간표에 내 선택과목 블록({isGrade3 ? 'E~H' : 'A~D'})을 겹쳐 보여 줍니다. 컴시간알리미 서버에 연결하지는 않습니다.
               </p>
             </div>
           </div>
@@ -108,21 +102,20 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
           <div className="p-4 bg-linear-to-r from-indigo-900 to-slate-900 rounded-2xl text-white space-y-2 shadow-xs">
             <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>컴시간알리미 한계 극복: 선택과목 블록 오버레이 기술</span>
+              <span>선택과목 블록 오버레이</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              기존 컴시간알리미는 학급 기준이라 고교학점제 선택과목 시간에 단순히 <strong>'선택{isGrade3 ? 'E, F' : 'A, B'}'</strong>로만 표시되어 과목과 교실을 알 수 없었습니다.
-              우리 서비스는 <strong>컴시간 서버의 주간 교시표</strong>를 1초 만에 가져와 <strong>학생의 개인 선택과목과 교실을 자동 매칭</strong>합니다.
+              학급 시간표는 선택과목 시간이 <strong>'선택{isGrade3 ? 'E, F' : 'A, B'}'</strong>처럼 블록으로만 표시되어 과목과 교실을 알 수 없습니다.
+              이 화면은 주간 블록표에 <strong>학생의 개인 선택과목과 교실을 겹쳐</strong> 보여 줍니다.
             </p>
           </div>
 
           {/* School & Class Selector */}
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
             <div className="font-bold text-slate-800 flex items-center justify-between">
-              <span>컴시간알리미 서버 학급 시간표 조회</span>
-              <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                컴시간 API 엔드포인트 연결됨 (comci.kr:4082)
+              <span>예시 학급 시간표 조회</span>
+              <span className="text-[11px] text-amber-700 font-semibold">
+                실제 시간표가 아닙니다
               </span>
             </div>
 
@@ -178,20 +171,10 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
               <button
                 type="button"
                 onClick={handleFetchComcigan}
-                disabled={isLoading}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
               >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    컴시간 서버에서 가져오는 중...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-3.5 h-3.5" />
-                    컴시간 시간표 실시간 가져오기
-                  </>
-                )}
+                <Download className="w-3.5 h-3.5" />
+                예시 시간표 불러오기
               </button>
             </div>
           </div>

@@ -201,7 +201,7 @@ export const StudentHome: React.FC<StudentHomeProps> = ({
           <div className="relative w-full h-48 sm:h-64 lg:h-80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-md group border border-slate-200/80 bg-slate-900">
             {/* The second photo of Jungsan High School building at night */}
             <img
-              src="/assets/aistudio/image_2858cb79.png"
+              src="assets/aistudio/image_2858cb79.png"
               alt="중산고등학교 전경"
               className="w-full h-full object-cover object-center group-hover:scale-[1.01] transition-transform duration-700 ease-out"
             />

@@ -5,6 +5,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // GitHub Pages는 /PAN/ 아래에서 서비스되므로 상대 경로로 빌드한다.
+    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

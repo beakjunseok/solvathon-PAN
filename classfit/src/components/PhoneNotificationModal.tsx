@@ -605,7 +605,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden relative border border-white/5">
                       <img
-                        src="/assets/aistudio/Screenshot_20261024-153859_Chrome_88b40ef5.jpg"
+                        src="assets/aistudio/phone_shade_bg.jpg"
                         alt="Album"
                         className="w-full h-full object-cover opacity-60"
                         onError={(e) => {
@@ -993,7 +993,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden relative border border-white/10">
                         <img
-                          src="/assets/aistudio/Screenshot_20261024-153859_Chrome_88b40ef5.jpg"
+                          src="assets/aistudio/phone_shade_bg.jpg"
                           alt="Album"
                           className="w-full h-full object-cover opacity-60"
                           onError={(e) => {
@@ -1185,7 +1185,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden relative">
                         <img
-                          src="/assets/aistudio/Screenshot_20261024-153859_Chrome_88b40ef5.jpg"
+                          src="assets/aistudio/phone_shade_bg.jpg"
                           alt="Album"
                           className="w-full h-full object-cover opacity-60"
                           onError={(e) => {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Assessment, StudentProfile, WeeklyBlockSlot } from '../types';
 import { JungsanLogo } from './JungsanLogo';
+import { parseNotice } from '../utils/noticeParser';
 import {
   Trophy,
   Sparkles,
@@ -39,30 +40,51 @@ export const SolverthonPitchView: React.FC<SolverthonPitchViewProps> = ({
 }) => {
   const [activeStep, setActiveStep] = useState<number>(1);
   const [riroInput, setRiroInput] = useState(
-    '[중산고 3학년 공지] 10월 30일(금) E블록 물리Ⅱ 시간에 전자기 유도 탐구 실험평가를 실시합니다. 준비물은 공학용 계산기와 실험 가운입니다. 신관 3층 물리실험실로 이동하세요.'
+    '[중산고 3학년 공지] 11월 4일(수) E블록 물리Ⅱ 시간에 전자기 유도 탐구 실험평가를 실시합니다. 준비물은 공학용 계산기와 실험 가운입니다. 신관 3층 물리실험실로 이동하세요.'
   );
-  const [riroParsedSuccess, setRiroParsedSuccess] = useState(false);
+  const [riroResult, setRiroResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const handleParseRiroNotice = () => {
-    // Smart parser simulating extraction from Riroschool text notice
+    const knownSubjects = [
+      ...students.flatMap((s) => s.courses.map((c) => c.subject)),
+      ...assessments.map((a) => a.subject),
+    ];
+    const parsed = parseNotice(riroInput, new Date(), knownSubjects);
+
+    if (parsed.missing.length > 0 || !parsed.grade || !parsed.block) {
+      setRiroResult({
+        ok: false,
+        message: `공지에서 ${parsed.missing.join(', ')} 항목을 찾지 못해 등록하지 않았습니다. 공지 글을 보완해 주세요.`,
+      });
+      return;
+    }
+
     const newAsmt: Assessment = {
-      id: `asmt-riro-${Date.now()}`,
-      subject: '물리Ⅱ',
-      block: 'E',
-      targetGrade: 3,
-      title: '물리Ⅱ 전자기 유도 탐구 실험평가 (리로서쿨 연동)',
-      type: '실험/탐구',
-      date: '2026-10-30',
-      supplies: ['공학용 계산기', '실험 가운', '필기도구'],
-      description:
-        '리로서쿨 공지에서 자동 연동됨: 코일 감은 수에 따른 유도기전력 측정 및 오차 분석 보고서 제출',
-      criteria: ['데이터 측정 정확도 (40점)', '패러데이 법칙 유도 (30점)', '보고서 작성 (30점)'],
-      teacherName: '박물리 선생님',
+      id: `asmt-notice-${Date.now()}`,
+      subject: parsed.subject,
+      block: parsed.block,
+      targetGrade: parsed.grade,
+      title: parsed.title,
+      type: parsed.type,
+      date: parsed.date,
+      supplies: parsed.supplies,
+      description: riroInput.trim(),
+      criteria: [],
+      teacherName: '담당 선생님',
       createdAt: new Date().toISOString(),
     };
     onAddAssessment(newAsmt);
-    setRiroParsedSuccess(true);
-    setTimeout(() => setRiroParsedSuccess(false), 4000);
+
+    const targets = students.filter(
+      (s) =>
+        s.grade === parsed.grade &&
+        s.courses.some((c) => c.block === parsed.block && c.subject === parsed.subject)
+    );
+    const suppliesText = parsed.supplies.length > 0 ? parsed.supplies.join(', ') : '없음';
+    setRiroResult({
+      ok: true,
+      message: `${parsed.date} ${parsed.grade}학년 ${parsed.block}블록 ${parsed.subject} 「${parsed.title}」 등록 완료 (준비물: ${suppliesText}, 교실: ${parsed.room || '학생별 수강 교실'}) · 표시 대상 ${targets.length}명: ${targets.map((s) => s.name).join(', ') || '없음'}`,
+    });
   };
 
   return (
@@ -358,13 +380,20 @@ export const SolverthonPitchView: React.FC<SolverthonPitchViewProps> = ({
           </div>
         </div>
 
-        {riroParsedSuccess && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold flex items-center gap-2 animate-fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>
-              리로서쿨 공지가 성공적으로 파싱되어 [물리Ⅱ - 3학년 E블록 3교시]로 등록되었습니다!
-              김민준 학생 화면에서 즉시 확인 가능합니다.
-            </span>
+        {riroResult && (
+          <div
+            className={`p-3 border rounded-xl text-xs font-semibold flex items-center gap-2 animate-fade-in ${
+              riroResult.ok
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                : 'bg-rose-50 border-rose-200 text-rose-900'
+            }`}
+          >
+            {riroResult.ok ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{riroResult.message}</span>
           </div>
         )}
       </div>

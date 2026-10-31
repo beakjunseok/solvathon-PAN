@@ -17,6 +17,12 @@ import {
   resetAllData,
 } from './utils/storage';
 import { matchStudentAssessments, getClosestStudentAssessment, getClosestTeacherAssessment } from './utils/scheduleMatcher';
+import {
+  isRemoteConfigured,
+  fetchRemoteAssessments,
+  upsertRemoteAssessments,
+  deleteRemoteAssessment,
+} from './utils/remoteStore';
 import { Navbar } from './components/Navbar';
 import { StudentHome } from './components/StudentHome';
 import { StudentScheduleEditor } from './components/StudentScheduleEditor';
@@ -42,6 +48,41 @@ export default function App() {
   const [activeStudentId, setActiveId] = useState<string>(() => getActiveStudentId());
   const [assessments, setAssessments] = useState<Assessment[]>(() => getStoredAssessments());
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklyBlockSlot[]>(() => getStoredSchedule());
+
+  const [isRemoteOnline, setIsRemoteOnline] = useState(false);
+
+  const pullRemoteAssessments = async () => {
+    if (!isRemoteConfigured) return;
+    try {
+      const remote = await fetchRemoteAssessments();
+      if (remote.length === 0) {
+        // 빈 테이블이면 현재 데이터를 올려 모든 기기가 같은 평가를 보게 한다.
+        const local = getStoredAssessments();
+        if (local.length > 0) await upsertRemoteAssessments(local);
+      } else {
+        setAssessments(remote);
+        saveAssessments(remote);
+      }
+      setIsRemoteOnline(true);
+    } catch (err) {
+      console.error('Failed to load assessments from Supabase', err);
+      setIsRemoteOnline(false);
+    }
+  };
+
+  const pushRemote = (task: Promise<void>) => {
+    task.then(() => setIsRemoteOnline(true)).catch((err) => {
+      console.error('Failed to sync assessments to Supabase', err);
+      setIsRemoteOnline(false);
+    });
+  };
+
+  // 다른 기기에서 등록한 평가가 보이도록 주기적으로 다시 불러온다.
+  useEffect(() => {
+    pullRemoteAssessments();
+    const timer = setInterval(pullRemoteAssessments, 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Persistent authenticated user session state
   const [authUser, setAuthUser] = useState<AuthUser>(() => {
@@ -143,18 +184,21 @@ export default function App() {
     const next = [newAsmt, ...assessments];
     setAssessments(next);
     saveAssessments(next);
+    if (isRemoteConfigured) pushRemote(upsertRemoteAssessments([newAsmt]));
   };
 
   const handleUpdateAssessment = (updatedAsmt: Assessment) => {
     const next = assessments.map((a) => (a.id === updatedAsmt.id ? updatedAsmt : a));
     setAssessments(next);
     saveAssessments(next);
+    if (isRemoteConfigured) pushRemote(upsertRemoteAssessments([updatedAsmt]));
   };
 
   const handleDeleteAssessment = (id: string) => {
     const next = assessments.filter((a) => a.id !== id);
     setAssessments(next);
     saveAssessments(next);
+    if (isRemoteConfigured) pushRemote(deleteRemoteAssessment(id));
   };
 
   const handleToggleSupply = (assessmentId: string, item: string) => {
@@ -524,6 +568,8 @@ export default function App() {
             <span>선택과목 A·B·C·D 블록 자동 연동</span>
             <span>·</span>
             <span>2026. 10. 31.(토) 대회</span>
+            <span>·</span>
+            <span>{isRemoteOnline ? '서버 동기화 중' : '이 브라우저에만 저장 중'}</span>
           </div>
         </div>
       </footer>
@@ -538,6 +584,7 @@ export default function App() {
             setAssessments(getStoredAssessments());
             setWeeklySchedule(getStoredSchedule());
             setStudents(getStoredStudents());
+            pullRemoteAssessments();
           }}
           onGoBack={() => {
             if (activeTab === 'mypage' || activeTab === 'matrix') {
