@@ -72,3 +72,19 @@ create policy "school settings demo insert" on public.school_settings
   for insert to anon with check (true);
 create policy "school settings demo update" on public.school_settings
   for update to anon using (true) with check (true);
+
+-- 로그인 계정: 공개 키 정책을 만들지 않아 서버 전용 키로만 접근할 수 있습니다.
+create table if not exists public.accounts (
+  id uuid primary key default gen_random_uuid(),
+  login_key text not null unique,
+  role text not null check (role in ('student', 'teacher')),
+  name text not null,
+  password_hash text not null,
+  salt text not null,
+  profile jsonb not null default '{}',
+  failed_attempts integer not null default 0,
+  locked_until timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.accounts enable row level security;

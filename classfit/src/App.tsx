@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AppRole, Assessment, AuthUser, MatchedAssessment, StudentProfile, WeeklyBlockSlot } from './types';
 import {
   getStoredStudents,
@@ -23,7 +23,15 @@ import {
   upsertRemoteAssessments,
   deleteRemoteAssessment,
 } from './utils/remoteStore';
-import { refreshDailyPush } from './utils/dailyPush';
+import { disableDailyPush, isDailyPushEnabled, refreshDailyPush } from './utils/dailyPush';
+import {
+  AuthSession,
+  fetchStudentAccounts,
+  readSession,
+  saveRemoteProfile,
+  verifySession,
+  writeSession,
+} from './utils/authClient';
 import { refreshSchoolSettings } from './utils/schoolSettings';
 import { Navbar } from './components/Navbar';
 import { StudentHome } from './components/StudentHome';
@@ -46,8 +54,13 @@ import { RiroBottomBar } from './components/RiroBottomBar';
 import { Sparkles, GraduationCap, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
-  const [students, setStudents] = useState<StudentProfile[]>(() => getStoredStudents());
-  const [activeStudentId, setActiveId] = useState<string>(() => getActiveStudentId());
+  const [session, setSession] = useState<AuthSession | null>(() => readSession());
+  const [isSessionVerified, setIsSessionVerified] = useState(false);
+  const lastSavedProfile = useRef('');
+  const [students, setStudents] = useState<StudentProfile[]>(() =>
+    session?.profile ? [session.profile] : getStoredStudents()
+  );
+  const [activeStudentId, setActiveId] = useState<string>(() => session?.profile?.id || getActiveStudentId());
   const [assessments, setAssessments] = useState<Assessment[]>(() => getStoredAssessments());
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklyBlockSlot[]>(() => getStoredSchedule());
 
@@ -92,32 +105,10 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Persistent authenticated user session state
-  const [authUser, setAuthUser] = useState<AuthUser>(() => {
-    const saved = localStorage.getItem('jungsan_auth_session');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && (parsed.role === 'student' || parsed.role === 'teacher')) {
-          return parsed;
-        }
-      } catch {
-        // fallback
-      }
-    }
-    const initialStudents = getStoredStudents();
-    const initialActiveId = getActiveStudentId();
-    const found = initialStudents.find((s) => s.id === initialActiveId) || initialStudents[0];
-    return { role: 'student', id: found.id, name: found.name };
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('jungsan_auth_session', JSON.stringify(authUser));
-    } catch {
-      // ignore
-    }
-  }, [authUser]);
+  const authUser: AuthUser =
+    session?.role === 'teacher'
+      ? { role: 'teacher', name: session.name }
+      : { role: 'student', id: session?.id || '', name: session?.name || '' };
 
   const [currentRole, setCurrentRole] = useState<AppRole>(() => {
     return authUser.role === 'teacher' ? 'teacher' : 'student';
@@ -128,8 +119,6 @@ export default function App() {
   const [selectedAssessmentForModal, setSelectedAssessmentForModal] = useState<MatchedAssessment | null>(null);
 
   // Login Portal State & Access Denied Modal State
-  const [isLoginPortalOpen, setIsLoginPortalOpen] = useState(false);
-  const [loginPortalInitialRole, setLoginPortalInitialRole] = useState<'student' | 'teacher'>('student');
   const [isAccessDeniedOpen, setIsAccessDeniedOpen] = useState(false);
 
   // New Interactive Modals
@@ -163,11 +152,11 @@ export default function App() {
 
   // 앱을 열거나 수행평가 상태가 바뀌면 고정 알림의 D-Day를 다시 맞춘다.
   useEffect(() => {
-    if (!activeStudent) return;
+    if (!activeStudent || !session) return;
     refreshDailyPush(activeStudent, closestStudentAssessment).catch((err) => {
       console.error('Failed to refresh daily notification', err);
     });
-  }, [activeStudent, closestStudentAssessment]);
+  }, [activeStudent, closestStudentAssessment, session]);
 
   // Persistence hooks
   const handleSelectRole = (newRole: AppRole) => {
@@ -182,12 +171,6 @@ export default function App() {
   const handleSelectStudent = (id: string) => {
     setActiveId(id);
     setActiveStudentId(id);
-    if (authUser.role === 'student') {
-      const st = students.find((s) => s.id === id);
-      if (st) {
-        setAuthUser({ role: 'student', id: st.id, name: st.name });
-      }
-    }
   };
 
   const handleUpdateStudent = (updatedStudent: StudentProfile) => {
@@ -268,40 +251,71 @@ export default function App() {
       setAssessments(initial.assessments);
       setWeeklySchedule(initial.schedule);
       setActiveId(initial.students[0].id);
-      setAuthUser({ role: 'student', id: initial.students[0].id, name: initial.students[0].name });
       setCurrentRole('student');
     }
   };
 
-  const handleLoginAsStudent = (studentId: string) => {
-    const st = students.find((s) => s.id === studentId);
-    const studentName = st ? st.name : '학생';
-    setAuthUser({ role: 'student', id: studentId, name: studentName });
-    setActiveId(studentId);
-    setActiveStudentId(studentId);
-    setCurrentRole('student');
+  const applySession = (next: AuthSession) => {
+    writeSession(next);
+    setSession(next);
+    setIsSessionVerified(true);
     setActiveTab('home');
-    setIsLoginPortalOpen(false);
+
+    if (next.role === 'teacher') {
+      setCurrentRole('teacher');
+      fetchStudentAccounts(next.token)
+        .then((list) => {
+          if (list.length > 0) setStudents(list);
+        })
+        .catch((err) => console.error('Failed to load student accounts', err));
+      return;
+    }
+
+    if (next.profile) {
+      lastSavedProfile.current = JSON.stringify(next.profile);
+      setStudents([next.profile]);
+      setActiveId(next.profile.id);
+      setCurrentRole('student');
+      if (next.profile.grade !== 1 && next.profile.courses.length === 0) {
+        setIsScheduleEditorOpen(true);
+      }
+    }
   };
 
-  const handleLoginAsTeacher = (teacherName: string) => {
-    setAuthUser({ role: 'teacher', name: teacherName });
-    setCurrentRole('teacher');
-    setIsLoginPortalOpen(false);
+  const handleLogout = () => {
+    if (isDailyPushEnabled()) {
+      disableDailyPush().catch((err) => console.error('Failed to turn off notifications', err));
+    }
+    writeSession(null);
+    setSession(null);
+    setIsSessionVerified(false);
   };
 
-  const handleRegisterNewStudent = (newStudent: StudentProfile) => {
-    const next = [...students, newStudent];
-    setStudents(next);
-    saveStudents(next);
-    setAuthUser({ role: 'student', id: newStudent.id, name: newStudent.name });
-    setActiveId(newStudent.id);
-    setActiveStudentId(newStudent.id);
-    setCurrentRole('student');
-    setActiveTab('home');
-    setIsLoginPortalOpen(false);
-    setIsScheduleEditorOpen(true);
-  };
+  // 저장된 세션을 서버에서 확인한다. 네트워크 오류면 다음 접속 때 다시 확인한다.
+  useEffect(() => {
+    if (!session) return;
+    verifySession(session.token)
+      .then(applySession)
+      .catch((err) => {
+        if (err.message === '다시 로그인해 주세요.') handleLogout();
+      });
+  }, []);
+
+  // 선택과목과 체크 상태를 계정에 저장해 다른 기기에서도 이어서 쓴다.
+  useEffect(() => {
+    if (!session || session.role !== 'student' || !isSessionVerified || !activeStudent) return;
+    if (activeStudent.id !== session.id) return;
+    const serialized = JSON.stringify(activeStudent);
+    if (serialized === lastSavedProfile.current) return;
+    lastSavedProfile.current = serialized;
+    saveRemoteProfile(session.token, activeStudent).catch((err) => {
+      console.error('Failed to save profile', err);
+    });
+  }, [activeStudent, session, isSessionVerified]);
+
+  if (!session) {
+    return <LoginPortal onLoggedIn={applySession} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans w-full max-w-full overflow-x-hidden">
@@ -320,10 +334,7 @@ export default function App() {
           setActiveTab('mypage');
           if (currentRole !== 'student') setCurrentRole('student');
         }}
-        onOpenLoginPortal={() => {
-          setLoginPortalInitialRole(authUser.role);
-          setIsLoginPortalOpen(true);
-        }}
+        onOpenLoginPortal={handleLogout}
         onAttemptTeacherAccess={() => setIsAccessDeniedOpen(true)}
         closestStudentAssessment={closestStudentAssessment}
         closestTeacherAssessment={closestTeacherAssessment}
@@ -395,10 +406,7 @@ export default function App() {
               onToggleComplete={handleToggleComplete}
               onToggleSupply={handleToggleSupply}
               onBackToHome={() => setActiveTab('home')}
-              onOpenLoginPortal={() => {
-                setLoginPortalInitialRole(authUser.role);
-                setIsLoginPortalOpen(true);
-              }}
+              onOpenLoginPortal={handleLogout}
             />
           ) : activeTab === 'matrix' ? (
             <WeeklyBlockMatrix
@@ -544,28 +552,6 @@ export default function App() {
         }}
       />
 
-      {/* Login Portal Modal */}
-      {isLoginPortalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <LoginPortal
-            students={students}
-            initialRole={loginPortalInitialRole}
-            onLoginAsStudent={handleLoginAsStudent}
-            onLoginAsTeacher={handleLoginAsTeacher}
-            onGoToDualCompare={() => {
-              setCurrentRole('dual_compare');
-              setIsLoginPortalOpen(false);
-            }}
-            onGoToSlideDeck={() => {
-              setIsLoginPortalOpen(false);
-              setIsSlideDeckOpen(true);
-            }}
-            onRegisterNewStudent={handleRegisterNewStudent}
-            onClose={() => setIsLoginPortalOpen(false)}
-          />
-        </div>
-      )}
-
       {/* Teacher Access Denied Modal for Student Accounts */}
       {isAccessDeniedOpen && (
         <TeacherAccessDeniedModal
@@ -573,8 +559,7 @@ export default function App() {
           onClose={() => setIsAccessDeniedOpen(false)}
           onOpenTeacherLogin={() => {
             setIsAccessDeniedOpen(false);
-            setLoginPortalInitialRole('teacher');
-            setIsLoginPortalOpen(true);
+            handleLogout();
           }}
         />
       )}

@@ -438,10 +438,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     onClick={onOpenLoginPortal}
                     className="hidden sm:flex px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-colors items-center gap-1.5 shrink-0"
-                    title="계정 변경 / 교사 로그인 포털 열기"
+                    title="로그아웃"
                   >
                     <ArrowRightLeft className="w-3.5 h-3.5 text-slate-500" />
-                    <span>계정 전환</span>
+                    <span>로그아웃</span>
                   </button>
                 </div>
               ) : (
@@ -483,21 +483,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     onClick={onOpenLoginPortal}
                     className="hidden sm:flex px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-colors items-center gap-1.5 shrink-0"
-                    title="교직원 로그아웃 / 계정 전환"
+                    title="로그아웃"
                   >
                     <LogOut className="w-3.5 h-3.5 text-slate-500" />
                     <span>로그아웃</span>
                   </button>
                 </div>
               )}
-
-              <button
-                onClick={onResetData}
-                title="샘플 데이터 초기화"
-                className="hidden sm:flex p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors shrink-0"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
         </div>
@@ -549,7 +541,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 text-indigo-700 bg-indigo-50 font-semibold flex items-center gap-1"
               >
                 <ArrowRightLeft className="w-3 h-3" />
-                <span>계정 전환</span>
+                <span>로그아웃</span>
               </button>
             </>
           ) : (
