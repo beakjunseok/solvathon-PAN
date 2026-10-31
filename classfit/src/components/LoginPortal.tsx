@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StudentProfile } from '../types';
+import { StudentProfile, getBlocksForGrade } from '../types';
 import { JungsanLogo } from './JungsanLogo';
 import {
   GraduationCap,
@@ -65,12 +65,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
       classNum: newClass,
       studentNum: newNum,
       avatarColor: 'indigo',
-      courses: [
-        { block: newGrade === 3 ? 'E' : 'A', subject: newGrade === 3 ? '물리Ⅱ' : '물리Ⅰ', room: '신관 3층 물리실 (3-4)' },
-        { block: newGrade === 3 ? 'F' : 'B', subject: newGrade === 3 ? '화학Ⅱ' : '화학Ⅰ', room: '신관 2층 화학실' },
-        { block: newGrade === 3 ? 'G' : 'C', subject: newGrade === 3 ? '세계사' : '정치와 법', room: '본관 4층 사회과실' },
-        { block: newGrade === 3 ? 'H' : 'D', subject: newGrade === 3 ? '심화영어' : '일본어Ⅰ', room: '본관 2층 어학실' },
-      ],
+      courses: getBlocksForGrade(newGrade).map((block) => ({ block, subject: '', room: '' })),
       checkedSupplies: {},
       completedAssessments: [],
     };
@@ -333,7 +328,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                     </div>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    * 로그인 후 A~D 블록별 선택과목과 교실을 자유롭게 수정할 수 있습니다.
+                    * 2·3학년은 다음 화면에서 블록별 선택과목을 고릅니다.
                   </p>
                 </div>
 

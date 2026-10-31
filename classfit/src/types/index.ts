@@ -1,6 +1,7 @@
 export type BlockId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'COMMON';
 
 export function getBlocksForGrade(grade: number): Array<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H'> {
+  if (grade === 1) return [];
   if (grade === 3) {
     return ['E', 'F', 'G', 'H'];
   }
@@ -8,6 +9,7 @@ export function getBlocksForGrade(grade: number): Array<'A' | 'B' | 'C' | 'D' | 
 }
 
 export function getGradeBlockLabel(grade: number): string {
+  if (grade === 1) return '선택과목 없음';
   return grade === 3 ? 'E~H 블록' : 'A~D 블록';
 }
 

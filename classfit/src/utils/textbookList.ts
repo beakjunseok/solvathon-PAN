@@ -1,3 +1,6 @@
+import { StudentProfile } from '../types';
+import { getBlockAt, getDayFromCompactDate } from '../data/blockLayouts';
+
 // 수업이 아닌 시간표 항목에는 교과서가 필요 없다.
 const NON_TEXTBOOK_PATTERN = /자율|자치|동아리|진로활동|봉사|휴업|스포츠|체육|행사|고사|시험/;
 const SCHOOL_END_HOUR = 16;
@@ -20,6 +23,20 @@ export function getTextbookSubjects(rows: Array<{ period: number; subject: strin
   const sorted = [...rows].sort((a, b) => a.period - b.period);
   const subjects = sorted.map((row) => row.subject).filter((name) => !NON_TEXTBOOK_PATTERN.test(name));
   return Array.from(new Set(subjects));
+}
+
+// 블록 시간의 NEIS 과목은 학급 대표 과목이므로 학생이 고른 과목으로 바꾼다.
+export function applyMyElectives<T extends { date: string; period: number; subject: string }>(
+  rows: T[],
+  student: StudentProfile
+): T[] {
+  return rows.flatMap((row) => {
+    const day = getDayFromCompactDate(row.date);
+    const block = day ? getBlockAt(student.grade, day, row.period) : null;
+    if (!block) return [row];
+    const subject = student.courses.find((course) => course.block === block)?.subject;
+    return subject ? [{ ...row, subject }] : [];
+  });
 }
 
 function getStorageKey(studentId: string, date: string): string {

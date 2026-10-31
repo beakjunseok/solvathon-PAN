@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StudentCourse, StudentProfile, getBlocksForGrade, getGradeBlockLabel } from '../types';
-import { getTextbookSubjects } from '../utils/textbookList';
+import { getBlockSubjects } from '../data/blockLayouts';
 import { useNeisTimetable } from '../utils/useNeisTimetable';
 import { Save, User, BookOpen, MapPin, X, Sparkles, Check, Info } from 'lucide-react';
 
@@ -22,7 +22,6 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
 
   const activeBlocks = getBlocksForGrade(grade);
   const { rows: gradeRows } = useNeisTimetable(grade, null);
-  const subjectOptions = getTextbookSubjects(gradeRows).sort((a, b) => a.localeCompare(b, 'ko'));
 
   const [courses, setCourses] = useState<StudentCourse[]>(() => {
     const blocks = getBlocksForGrade(student.grade);
@@ -102,7 +101,7 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
               내 시간표 및 선택과목 블록 설정
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              중산고 학년별 규정: <strong>1·2학년은 A~D 블록</strong>, <strong>3학년은 E~H 블록</strong>으로 자동 연결됩니다.
+              <strong>2학년은 A~D 블록</strong>, <strong>3학년은 E~H 블록</strong>의 과목을 고릅니다. 1학년은 선택과목이 없습니다.
             </p>
           </div>
           <button
@@ -139,7 +138,7 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
                   onChange={(e) => handleGradeChange(Number(e.target.value))}
                   className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold text-indigo-700"
                 >
-                  <option value={1}>1학년 (A~D블록)</option>
+                  <option value={1}>1학년 (선택과목 없음)</option>
                   <option value={2}>2학년 (A~D블록)</option>
                   <option value={3}>3학년 (E~H블록)</option>
                 </select>
@@ -174,29 +173,28 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
             <div className="flex items-center gap-2 p-2 bg-indigo-50 rounded-lg text-xs text-indigo-900 font-medium border border-indigo-100">
               <Info className="w-4 h-4 text-indigo-600 shrink-0" />
               <span>
-                <strong>{grade}학년 선택:</strong> {grade === 3 ? '3학년은 E, F, G, H 블록' : '1·2학년은 A, B, C, D 블록'} 체계가 적용됩니다.
+                {grade === 1
+                  ? '1학년은 선택과목이 없어 고를 과목이 없습니다.'
+                  : `${grade}학년은 ${grade === 3 ? 'E, F, G, H' : 'A, B, C, D'} 블록의 과목을 고릅니다.`}
               </span>
             </div>
           </div>
 
-          <datalist id="neis-subject-options">
-            {subjectOptions.map((subject) => (
-              <option key={subject} value={subject} />
-            ))}
-          </datalist>
-
           {/* Block-by-Block Course Setup */}
           <div className="space-y-4">
+            {grade !== 1 && (
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 {getGradeBlockLabel(grade)}별 선택과목 & 이동 교실 등록
               </h3>
               <span className="text-xs text-indigo-600 font-medium">
-                고교학점제 블록 연동
+                NEIS 과목 목록
               </span>
             </div>
+            )}
 
             {activeBlocks.map((block) => {
+              const blockSubjects = getBlockSubjects(gradeRows, grade, block);
               const course = courses.find((c) => c.block === block) || {
                 block,
                 subject: '',
@@ -228,16 +226,31 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
                     <div>
                       <label className="block text-xs text-slate-500 mb-1">과목명</label>
-                      <input
-                        type="text"
-                        list="neis-subject-options"
-                        placeholder="눌러서 과목을 고르거나 입력하세요"
-                        value={course.subject}
-                        onChange={(e) =>
-                          handleUpdateCourse(block, 'subject', e.target.value)
-                        }
-                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                      />
+                      {blockSubjects.length > 0 ? (
+                        <select
+                          value={course.subject}
+                          onChange={(e) => handleUpdateCourse(block, 'subject', e.target.value)}
+                          className="w-full min-h-10 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        >
+                          <option value="">과목을 고르세요</option>
+                          {course.subject && !blockSubjects.includes(course.subject) && (
+                            <option value={course.subject}>{course.subject}</option>
+                          )}
+                          {blockSubjects.map((subject) => (
+                            <option key={subject} value={subject}>
+                              {subject}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="과목명을 입력하세요"
+                          value={course.subject}
+                          onChange={(e) => handleUpdateCourse(block, 'subject', e.target.value)}
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs text-slate-500 mb-1">이동 교실 / 특별실</label>

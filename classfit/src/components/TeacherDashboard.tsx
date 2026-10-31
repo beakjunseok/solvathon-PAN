@@ -116,7 +116,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [statusAssessment, setStatusAssessment] = useState<Assessment | null>(null);
 
   // Preview of period based on date and block
-  const previewCalculation = getPeriodForBlockAndDate(block, date, weeklySchedule);
+  const previewCalculation = getPeriodForBlockAndDate(block, date, weeklySchedule, undefined, targetGrade);
 
   // Closest assessment for teacher banner
   const closestUpcoming = getClosestTeacherAssessment(assessments, weeklySchedule);
@@ -158,6 +158,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       }
       if (!subject || subject === '물리Ⅱ') setSubject('화학Ⅰ');
     }
+    if (newGrade === 1) setBlock('COMMON');
   };
 
   const handleOpenAddModal = () => {
@@ -276,7 +277,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !subject.trim()) return;
+    if (!title.trim() || !subject.trim() || !previewCalculation.isBlockDay) return;
 
     if (editingId) {
       const updated: Assessment = {
@@ -536,7 +537,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         ) : (
           filteredAssessments.map((asmt) => {
-            const periodInfo = getPeriodForBlockAndDate(asmt.block, asmt.date, weeklySchedule, asmt.periodOverride);
+            const periodInfo = getPeriodForBlockAndDate(asmt.block, asmt.date, weeklySchedule, asmt.periodOverride, asmt.targetGrade);
             return (
               <div
                 key={asmt.id}
@@ -676,20 +677,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   >
                     <option value={3}>3학년 (E,F,G,H블록)</option>
                     <option value={2}>2학년 (A,B,C,D블록)</option>
-                    <option value={1}>1학년 (A,B,C,D블록)</option>
+                    <option value={1}>1학년 (공통과목만)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    해당 블록 ({targetGrade === 3 ? 'E~H' : 'A~D'} 또는 공통)
+                    해당 블록 ({targetGrade === 1 ? '공통' : targetGrade === 3 ? 'E~H 또는 공통' : 'A~D 또는 공통'})
                   </label>
                   <select
                     value={block}
                     onChange={(e) => setBlock(e.target.value as BlockId)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold text-indigo-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   >
-                    {targetGrade === 3 ? (
+                    {targetGrade === 1 ? (
+                      <option value="COMMON">공통과목 / 학급 공통</option>
+                    ) : targetGrade === 3 ? (
                       <>
                         <option value="E">E블록 (3학년 선택)</option>
                         <option value="F">F블록 (3학년 선택)</option>
@@ -781,10 +784,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 {/* Auto Calculated Period indicator */}
                 <div className="text-xs text-indigo-900 flex items-center gap-1.5 pt-1">
                   <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>
-                    <strong>시간표 자동 연동 결과:</strong> {date} ({previewCalculation.dayStr}) {block}블록은 학교 블록표 기준{' '}
-                    <span className="font-bold underline text-indigo-700">{previewCalculation.period}교시</span>에 실시됩니다.
-                  </span>
+                  {previewCalculation.isBlockDay ? (
+                    <span>
+                      <strong>시간표 자동 연동 결과:</strong> {date} ({previewCalculation.dayStr}) {block === 'COMMON' ? '공통과목' : `${block}블록`}{' '}
+                      <span className="font-bold underline text-indigo-700">{previewCalculation.period}교시</span>
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-rose-700">
+                      {date} ({previewCalculation.dayStr})에는 {targetGrade}학년 {block}블록 수업이 없습니다. 날짜를 바꿔 주세요.
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1012,7 +1021,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all"
+                  disabled={!previewCalculation.isBlockDay}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm transition-all"
                 >
                   {editingId ? '공지 수정 완료' : '공지 발행하기'}
                 </button>

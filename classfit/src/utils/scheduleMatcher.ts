@@ -1,4 +1,5 @@
 import { Assessment, DayOfWeek, MatchedAssessment, StudentProfile, WeeklyBlockSlot } from '../types';
+import { getBlockPeriodOnDay, hasBlockLayout } from '../data/blockLayouts';
 
 export const TODAY_DATE_STR = '2026-10-23'; // Base demo date matching system context
 
@@ -52,27 +53,33 @@ export function getPeriodForBlockAndDate(
   block: string,
   dateStr: string,
   weeklySchedule: WeeklyBlockSlot[],
-  periodOverride?: number
-): { period: number; dayStr: string } {
+  periodOverride?: number,
+  grade?: number
+): { period: number; dayStr: string; isBlockDay: boolean } {
   const dayOfWeek = getDayOfWeekFromDate(dateStr);
   const dayStr = dayOfWeek ? DAY_KOREAN[dayOfWeek] : '주말/지정일';
 
   if (periodOverride && periodOverride > 0) {
-    return { period: periodOverride, dayStr };
+    return { period: periodOverride, dayStr, isBlockDay: true };
   }
 
   if (!dayOfWeek) {
-    return { period: 1, dayStr };
+    return { period: 1, dayStr, isBlockDay: false };
+  }
+
+  if (grade && block !== 'COMMON' && hasBlockLayout(grade)) {
+    const blockPeriod = getBlockPeriodOnDay(grade, block, dayOfWeek);
+    return { period: blockPeriod || 2, dayStr, isBlockDay: blockPeriod !== null };
   }
 
   // Find slot for this day and block
   const slot = weeklySchedule.find(s => s.day === dayOfWeek && s.block === block);
   if (slot) {
-    return { period: slot.period, dayStr };
+    return { period: slot.period, dayStr, isBlockDay: true };
   }
 
   // Fallback default
-  return { period: 2, dayStr };
+  return { period: 2, dayStr, isBlockDay: true };
 }
 
 /**
@@ -98,7 +105,7 @@ export function matchStudentAssessments(
     // 2. Block & Subject Matching
     if (asmt.block === 'COMMON') {
       // Common grade-wide subject: matches all students in this grade
-      const { period, dayStr } = getPeriodForBlockAndDate(asmt.block, asmt.date, weeklySchedule, asmt.periodOverride);
+      const { period, dayStr } = getPeriodForBlockAndDate(asmt.block, asmt.date, weeklySchedule, asmt.periodOverride, student.grade);
       const daysRemaining = calculateDaysRemaining(asmt.date, baseDateStr);
 
       matched.push({
@@ -124,7 +131,7 @@ export function matchStudentAssessments(
     );
 
     if (enrolledCourse) {
-      const { period, dayStr } = getPeriodForBlockAndDate(asmt.block, asmt.date, weeklySchedule, asmt.periodOverride);
+      const { period, dayStr } = getPeriodForBlockAndDate(asmt.block, asmt.date, weeklySchedule, asmt.periodOverride, student.grade);
       const daysRemaining = calculateDaysRemaining(asmt.date, baseDateStr);
 
       matched.push({
@@ -291,7 +298,7 @@ export function getClosestTeacherAssessment(
   weeklySchedule: WeeklyBlockSlot[]
 ): (Assessment & { period: number; dayStr: string; daysRemaining: number }) | null {
   const withCalculations = allAssessments.map((a) => {
-    const { period, dayStr } = getPeriodForBlockAndDate(a.block, a.date, weeklySchedule, a.periodOverride);
+    const { period, dayStr } = getPeriodForBlockAndDate(a.block, a.date, weeklySchedule, a.periodOverride, a.targetGrade);
     const daysRemaining = calculateDaysRemaining(a.date);
     return {
       ...a,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MatchedAssessment, StudentProfile } from '../types';
 import {
+  applyMyElectives,
   getNextSchoolDay,
   getTextbookSubjects,
   readCheckedTextbooks,
@@ -39,7 +40,7 @@ export const MorningPackRoutine: React.FC<MorningPackRoutineProps> = ({
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
         if (!isActive) return;
-        setTextbooks(getTextbookSubjects(data.rows));
+        setTextbooks(getTextbookSubjects(applyMyElectives(data.rows, student)));
         setTextbookStatus('ready');
       })
       .catch(() => {
@@ -48,7 +49,7 @@ export const MorningPackRoutine: React.FC<MorningPackRoutineProps> = ({
     return () => {
       isActive = false;
     };
-  }, [student.id, student.grade, student.classNum, schoolDate]);
+  }, [student.id, student.grade, student.classNum, student.courses, schoolDate]);
 
   const handleToggleTextbook = (subject: string) => {
     const next = checkedTextbooks.includes(subject)
@@ -210,7 +211,7 @@ export const MorningPackRoutine: React.FC<MorningPackRoutineProps> = ({
                 })}
               </div>
             )}
-            <p className="text-[11px] text-slate-400">선택과목은 학생마다 다를 수 있으니 내 시간표와 함께 확인하세요.</p>
+            <p className="text-[11px] text-slate-400">선택과목은 내가 고른 과목으로 표시합니다.</p>
           </div>
 
           {/* Task Checklist Items */}

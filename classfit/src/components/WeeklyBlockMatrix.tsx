@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Assessment, DayOfWeek, StudentProfile, WeeklyBlockSlot } from '../types';
 import { DAY_KOREAN } from '../utils/scheduleMatcher';
-import { getBlockAt, hasBlockLayout } from '../data/blockLayouts';
+import { getBlockAt } from '../data/blockLayouts';
 import { toCompactDate } from '../utils/textbookList';
 import { useNeisTimetable } from '../utils/useNeisTimetable';
 import { ChevronLeft, ChevronRight, Clock, MapPin, SlidersHorizontal, Sparkles } from 'lucide-react';
@@ -101,11 +101,13 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
             {grade}학년 {classNum}반 주간 시간표
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            공통 과목은 NEIS 시간표로 표시하고, {blockLabel} 블록에는 내가 고른 과목을 표시합니다.
+            {grade === 1
+              ? 'NEIS 학급 시간표를 표시합니다.'
+              : `공통 과목은 NEIS 시간표로 표시하고, ${blockLabel} 블록에는 내가 고른 과목을 표시합니다.`}
           </p>
         </div>
 
-        {onOpenScheduleEditor && (
+        {onOpenScheduleEditor && grade !== 1 && (
           <button
             onClick={onOpenScheduleEditor}
             className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
@@ -138,11 +140,6 @@ export const WeeklyBlockMatrix: React.FC<WeeklyBlockMatrixProps> = ({
         </div>
       </div>
 
-      {!hasBlockLayout(grade) && (
-        <p className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-          {grade}학년 블록 위치가 아직 입력되지 않아 NEIS 시간표 그대로 표시합니다.
-        </p>
-      )}
       {isLimited && (
         <p className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
           NEIS 키가 설정되지 않아 일부 수업만 표시됩니다.
