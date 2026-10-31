@@ -189,6 +189,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     if (newGrade === 1) setBlock('COMMON');
   };
 
+  // 과목 목록이 늦게 도착해도 내 과목의 학년으로 맞춘다.
+  useEffect(() => {
+    if (!isModalOpen || editingId || !subject) return;
+    const grades = schoolSubjects.find((item) => item.name === subject)?.grades || [];
+    if (grades.length > 0 && !grades.includes(targetGrade)) handleGradeChangeInForm(grades[0]);
+  }, [schoolSubjects]);
+
   const gradeSubjectNames = schoolSubjects
     .filter((item) => item.grades.includes(targetGrade))
     .map((item) => item.name);
