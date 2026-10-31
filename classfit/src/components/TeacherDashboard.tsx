@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Assessment, BlockId, AssessmentType, FileRef, StudentProfile, SubmissionMode, SubmissionSettings, WeeklyBlockSlot } from '../types';
-import { getDayOfWeekFromDate, getPeriodForBlockAndDate, DAY_KOREAN, TODAY_DATE_STR, getClosestTeacherAssessment, getDetailedTimeRemaining } from '../utils/scheduleMatcher';
+import { Assessment, AssessmentSlot, BlockId, AssessmentType, FileRef, StudentProfile, SubmissionMode, SubmissionSettings, WeeklyBlockSlot } from '../types';
+import { formatSlot, getDayOfWeekFromDate, getPeriodForBlockAndDate, DAY_KOREAN, TODAY_DATE_STR, getClosestTeacherAssessment, getDetailedTimeRemaining } from '../utils/scheduleMatcher';
 import { FILE_ACCEPT, isRemoteConfigured, uploadFile, validateFile } from '../utils/remoteStore';
 import { SubmissionStatusModal } from './SubmissionStatusModal';
 import { TimetableManager } from './TimetableManager';
+import { AssessmentSlotPicker } from './AssessmentSlotPicker';
 import { Plus, Trash2, Edit3, Calendar, Clock, BookOpen, AlertCircle, CheckCircle, Tag, Sparkles, X, Filter, Upload, ClipboardList } from 'lucide-react';
 
 interface TeacherDashboardProps {
@@ -103,7 +104,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [subject, setSubject] = useState(defaultSubject);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<AssessmentType>('실험/탐구');
-  const [date, setDate] = useState(getDefaultDate());
+  const [date, setDate] = useState('');
+  const [slots, setSlots] = useState<AssessmentSlot[]>([]);
   const [supplies, setSupplies] = useState<string[]>([]);
   const [newSupplyInput, setNewSupplyInput] = useState('');
   const [description, setDescription] = useState('');
@@ -122,7 +124,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [statusAssessment, setStatusAssessment] = useState<Assessment | null>(null);
 
   // Preview of period based on date and block
-  const previewCalculation = getPeriodForBlockAndDate(block, date, weeklySchedule, undefined, targetGrade);
 
   // Closest assessment for teacher banner
   const closestUpcoming = getClosestTeacherAssessment(assessments, weeklySchedule);
@@ -134,7 +135,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setSubject(defaultSubject);
     setTitle('');
     setType('실험/탐구');
-    setDate(getDefaultDate());
+    setDate('');
+    setSlots([]);
     setSupplies([]);
     setNewSupplyInput('');
     setDescription('');
@@ -153,6 +155,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   const handleGradeChangeInForm = (newGrade: number) => {
     setTargetGrade(newGrade);
+    setSlots([]);
     if (newGrade === 3) {
       if (['A', 'B', 'C', 'D'].includes(block)) {
         setBlock('E');
@@ -178,6 +181,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setTitle(asmt.title);
     setType(asmt.type);
     setDate(asmt.date);
+    setSlots(asmt.slots || []);
     setSupplies(asmt.supplies);
     setDescription(asmt.description);
     setCriteria(asmt.criteria || []);
@@ -213,12 +217,32 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setCriteria(criteria.filter((_, i) => i !== idx));
   };
 
+  const getSortedSlots = () => {
+    return [...slots].sort((a, b) => a.date.localeCompare(b.date) || a.period - b.period);
+  };
+
+  const getLastSlotDate = () => {
+    const sorted = getSortedSlots();
+    return sorted.length > 0 ? sorted[sorted.length - 1].date : getLocalDate(new Date());
+  };
+
+  // 첫 칸의 값은 교사 화면의 일정 정렬에 쓰고, 학생별 날짜는 slots로 계산한다.
+  const buildScheduleFields = () => {
+    const [first] = getSortedSlots();
+    return {
+      slots: getSortedSlots(),
+      date: first.date,
+      block: first.block || ('COMMON' as BlockId),
+      periodOverride: first.period,
+    };
+  };
+
   const buildSubmissionSettings = (): SubmissionSettings | undefined => {
     if (!submissionEnabled) return undefined;
     return {
       enabled: true,
       mode: submissionMode,
-      deadline: submissionDeadline || `${date}T23:59`,
+      deadline: submissionDeadline || `${getLastSlotDate()}T23:59`,
     };
   };
 
@@ -271,7 +295,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       if (result.description) setDescription(result.description);
       if (result.supplies.length > 0) setSupplies(result.supplies);
       if (result.criteria.length > 0) setCriteria(result.criteria);
-      setAnalysisMessage('문서 내용을 채웠습니다. 등록 전에 반드시 확인해 주세요.');
+      setAnalysisMessage('문서 내용을 채웠습니다. 시간표 칸을 체크하고 내용을 확인해 주세요.');
     } catch (err) {
       setUploadError(err instanceof Error && err.message ? err.message : '문서를 분석하지 못했습니다.');
     } finally {
@@ -281,7 +305,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !subject.trim() || !previewCalculation.isBlockDay) return;
+    if (!title.trim() || !subject.trim() || slots.length === 0) return;
 
     if (editingId) {
       const updated: Assessment = {
@@ -298,6 +322,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         teacherName,
         documents,
         submission: buildSubmissionSettings(),
+        ...buildScheduleFields(),
         createdAt: new Date().toISOString(),
       };
       onUpdateAssessment(updated);
@@ -316,6 +341,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         teacherName,
         documents,
         submission: buildSubmissionSettings(),
+        ...buildScheduleFields(),
         createdAt: new Date().toISOString(),
       };
       onAddAssessment(newAsmt);
@@ -413,8 +439,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             선생님 수행평가 공지 관리
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-            선생님이 과목과 블록(<strong>1·2학년 A~D</strong>, <strong>3학년 E~H</strong>), 일자, 준비물을 1회만 등록하면,
-            해당 블록을 수강하는 학생들의 개인 시간표에 해당 교시와 교실로 자동 변환되어 배부됩니다.
+            과목을 고르고 평가를 보는 시간표 칸을 체크하면, 그 칸에 해당하는 학생에게만 평가가 보입니다.
           </p>
         </div>
 
@@ -582,11 +607,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     <div className="flex flex-wrap items-center gap-3 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-600">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>일자: {asmt.date} ({periodInfo.dayStr.slice(0, 1)})</span>
+                        <span>
+                          {asmt.slots?.length
+                            ? `${asmt.slots.length}개 칸: ${asmt.slots.slice(0, 3).map(formatSlot).join(', ')}${asmt.slots.length > 3 ? ' 외' : ''}`
+                            : `일자: ${asmt.date} (${periodInfo.dayStr.slice(0, 1)})`}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1 font-semibold text-indigo-900">
                         <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>자동 계산 교시: {periodInfo.period}교시</span>
+                        {!asmt.slots?.length && <span>자동 계산 교시: {periodInfo.period}교시</span>}
                       </div>
                       <div className="text-[11px] text-slate-400">
                         담당: {asmt.teacherName}
@@ -684,7 +713,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
             <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs">
               {/* Target Grade & Block Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">대상 학년</label>
                   <select
@@ -699,42 +728,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    해당 블록 ({targetGrade === 1 ? '공통' : targetGrade === 3 ? 'E~H 또는 공통' : 'A~D 또는 공통'})
-                  </label>
-                  <select
-                    value={block}
-                    onChange={(e) => setBlock(e.target.value as BlockId)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold text-indigo-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    {targetGrade === 1 ? (
-                      <option value="COMMON">공통과목 / 학급 공통</option>
-                    ) : targetGrade === 3 ? (
-                      <>
-                        <option value="E">E블록 (3학년 선택)</option>
-                        <option value="F">F블록 (3학년 선택)</option>
-                        <option value="G">G블록 (3학년 선택)</option>
-                        <option value="H">H블록 (3학년 선택)</option>
-                        <option value="COMMON">공통과목 / 학급 공통</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="A">A블록 (1·2학년 선택)</option>
-                        <option value="B">B블록 (1·2학년 선택)</option>
-                        <option value="C">C블록 (1·2학년 선택)</option>
-                        <option value="D">D블록 (1·2학년 선택)</option>
-                        <option value="COMMON">공통과목 / 학급 공통</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-
-                <div>
                   <label className="block font-semibold text-slate-700 mb-1">과목명</label>
                   <input
                     type="text"
                     required
-                    placeholder={targetGrade === 3 ? '예: 물리Ⅱ, 생명과학Ⅱ...' : '예: 화학Ⅰ, 생명과학Ⅰ...'}
+                    list="assessment-subject-options"
+                    placeholder="시간표 과목명을 고르세요"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
@@ -772,47 +771,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Date & Live Period Auto-calculation banner */}
-              <div className="p-3.5 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">수행평가 실시 일자</label>
-                    <input
-                      type="date"
-                      required
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">담당 선생님 성함</label>
-                    <input
-                      type="text"
-                      required
-                      value={teacherName}
-                      onChange={(e) => setTeacherName(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Auto Calculated Period indicator */}
-                <div className="text-xs text-indigo-900 flex items-center gap-1.5 pt-1">
-                  <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
-                  {previewCalculation.isBlockDay ? (
-                    <span>
-                      <strong>시간표 자동 연동 결과:</strong> {date} ({previewCalculation.dayStr}) {block === 'COMMON' ? '공통과목' : `${block}블록`}{' '}
-                      <span className="font-bold underline text-indigo-700">{previewCalculation.period}교시</span>
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-rose-700">
-                      {date} ({previewCalculation.dayStr})에는 {targetGrade}학년 {block}블록 수업이 없습니다. 날짜를 바꿔 주세요.
-                    </span>
-                  )}
-                </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">담당 선생님 성함</label>
+                <input
+                  type="text"
+                  required
+                  value={teacherName}
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
               </div>
+
+              <AssessmentSlotPicker
+                grade={targetGrade}
+                subject={subject}
+                slots={slots}
+                focusDate={date}
+                onChange={setSlots}
+              />
 
               {/* Assessment Documents */}
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
@@ -893,7 +869,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <input
                         type="datetime-local"
                         required
-                        value={submissionDeadline || `${date}T23:59`}
+                        value={submissionDeadline || `${getLastSlotDate()}T23:59`}
                         onChange={(e) => setSubmissionDeadline(e.target.value)}
                         className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900"
                       />
@@ -1038,7 +1014,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={!previewCalculation.isBlockDay}
+                  disabled={slots.length === 0}
                   className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm transition-all"
                 >
                   {editingId ? '공지 수정 완료' : '공지 발행하기'}

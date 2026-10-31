@@ -22,16 +22,32 @@ function findCourse(assessment, profile) {
   );
 }
 
-function isForStudent(assessment, profile) {
-  if (assessment.targetGrade !== profile.grade) return false;
-  return assessment.block === 'COMMON' || Boolean(findCourse(assessment, profile));
+function isSameSubject(a, b) {
+  const left = a.replace(/\s/g, '').toLowerCase();
+  const right = b.replace(/\s/g, '').toLowerCase();
+  return left.length > 0 && right.length > 0 && (left.includes(right) || right.includes(left));
+}
+
+// 시간표 칸으로 등록한 평가는 학생에게 해당하는 칸의 날짜를 쓴다.
+function getStudentDates(assessment, profile) {
+  if (assessment.targetGrade !== profile.grade) return [];
+  if (assessment.slots?.length) {
+    return assessment.slots
+      .filter((slot) =>
+        slot.block
+          ? profile.courses.some((c) => c.block === slot.block && isSameSubject(c.subject, assessment.subject))
+          : slot.classNum === profile.classNum
+      )
+      .map((slot) => slot.date);
+  }
+  const matches = assessment.block === 'COMMON' || Boolean(findCourse(assessment, profile));
+  return matches ? [assessment.date] : [];
 }
 
 function buildMessage(assessments, profile, today) {
   const next = assessments
-    .filter((a) => isForStudent(a, profile))
     .filter((a) => !profile.completedAssessments.includes(a.id))
-    .map((a) => ({ ...a, days: daysBetween(today, a.date) }))
+    .flatMap((a) => getStudentDates(a, profile).map((date) => ({ ...a, days: daysBetween(today, date) })))
     .filter((a) => a.days >= 0)
     .sort((a, b) => a.days - b.days)[0];
 
