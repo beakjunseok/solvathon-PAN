@@ -1,4 +1,4 @@
-# [PAD] 수행알리미 (Performance Assessment Notification)
+# [PAN] 수행알리미 (Performance Assessment Notification)
 
 > 한 줄 소개: 선택과목이 달라 내 수행평가를 놓치기 쉬운 중산고 학생에게, 내 날짜·교시·교실·준비물만 골라 보여 주는 웹 서비스 (개인 참가)
 
