@@ -44,7 +44,7 @@ import { DualCompareView } from './components/DualCompareView';
 import { WeeklyBlockMatrix } from './components/WeeklyBlockMatrix';
 import { AssessmentDetailModal } from './components/AssessmentDetailModal';
 import { SolverthonPitchView } from './components/SolverthonPitchView';
-import { CampusMapModal } from './components/JungsanCampusMap';
+import { CampusMapModal, JUNGSAN_CAMPUS_FLOORS } from './components/JungsanCampusMap';
 import { MorningPackRoutine } from './components/MorningPackRoutine';
 import { SolverthonSlideDeck } from './components/SolverthonSlideDeck';
 import { LoginPortal } from './components/LoginPortal';
@@ -359,6 +359,11 @@ export default function App() {
     const today = new Date();
     const lines = [`오늘: ${toCompactDate(today)} (${'일월화수목금토'[today.getDay()]}요일)`];
 
+    lines.push('층별 안내:');
+    JUNGSAN_CAMPUS_FLOORS.forEach((floor) => {
+      lines.push(`- ${floor.label} ${floor.subLabel}: ${floor.rooms.join(', ')} (${floor.features.join(', ')})`);
+    });
+
     if (session?.role === 'teacher') {
       lines.push(`교사: ${session.name}`, `담당 과목: ${(session.subjects || []).join(', ') || '미입력'}`, '등록된 수행평가:');
       assessments.slice(0, 40).forEach((a) => {
@@ -368,7 +373,7 @@ export default function App() {
     }
 
     lines.push(`학생: ${activeStudent.grade}학년 ${activeStudent.classNum}반`);
-    lines.push(`선택과목: ${activeStudent.courses.map((c) => `${c.block}블록 ${c.subject || '미선택'}`).join(', ') || '없음'}`);
+    lines.push(`선택과목: ${activeStudent.courses.map((c) => `${c.block}블록 ${c.subject || '미선택'} 교실 ${c.room || '미입력'}`).join(', ') || '없음'}`);
     lines.push('수행평가:');
     matchedAssessments.slice(0, 30).forEach((a) => {
       const checked = activeStudent.checkedSupplies[a.id] || [];
@@ -385,6 +390,11 @@ export default function App() {
         applyTimetableOverrides(data.rows as Array<{ date: string; period: number; subject: string }>, activeStudent.grade, activeStudent.classNum),
         activeStudent
       ).sort((a, b) => a.date.localeCompare(b.date) || a.period - b.period);
+      const until = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 60);
+      const noClass = await fetch(
+        `/api/school-days?grade=${activeStudent.grade}&from=${toCompactDate(today)}&to=${toCompactDate(until)}`
+      ).then((response) => response.json());
+      lines.push(`앞으로 수업 없는 날: ${Object.entries(noClass.days || {}).map(([date, name]) => `${date} ${name}`).join(', ') || '없음'}`);
       lines.push('이번 주 시간표:');
       rows.forEach((row) => lines.push(`- ${row.date} ${row.period}교시 ${row.subject}`));
     } catch {
