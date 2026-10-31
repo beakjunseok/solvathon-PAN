@@ -1,0 +1,783 @@
+import React, { useState } from 'react';
+import { Assessment, BlockId, AssessmentType, WeeklyBlockSlot } from '../types';
+import { getDayOfWeekFromDate, getPeriodForBlockAndDate, DAY_KOREAN, TODAY_DATE_STR, getClosestTeacherAssessment, getDetailedTimeRemaining } from '../utils/scheduleMatcher';
+import { Plus, Trash2, Edit3, Calendar, Clock, BookOpen, AlertCircle, CheckCircle, Tag, Sparkles, X, Filter } from 'lucide-react';
+
+interface TeacherDashboardProps {
+  assessments: Assessment[];
+  weeklySchedule: WeeklyBlockSlot[];
+  onAddAssessment: (newAsmt: Assessment) => void;
+  onUpdateAssessment: (updatedAsmt: Assessment) => void;
+  onDeleteAssessment: (id: string) => void;
+}
+
+const ASSESSMENT_TYPES: AssessmentType[] = [
+  '실험/탐구',
+  '논술/서술',
+  '구술/발표',
+  '프로젝트',
+  '포트폴리오',
+  '단원평가',
+];
+
+const COMMON_SUPPLIES = [
+  '공학용 계산기',
+  '실험 가운',
+  '30cm 자',
+  '컴퓨터용 사인펜',
+  '검은색 볼펜',
+  '수정테이프',
+  '태블릿 PC',
+  '발표 큐카드',
+  '개인 학습지 철',
+];
+
+export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
+  assessments,
+  weeklySchedule,
+  onAddAssessment,
+  onUpdateAssessment,
+  onDeleteAssessment,
+}) => {
+  const [filterGrade, setFilterGrade] = useState<'ALL' | '3' | '1_2'>('ALL');
+  const [filterBlock, setFilterBlock] = useState<string>('ALL');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Form State
+  const [targetGrade, setTargetGrade] = useState(3);
+  const [block, setBlock] = useState<BlockId>('E');
+  const [subject, setSubject] = useState('물리Ⅱ');
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState<AssessmentType>('실험/탐구');
+  const [date, setDate] = useState('2026-10-30');
+  const [supplies, setSupplies] = useState<string[]>(['공학용 계산기', '실험 가운']);
+  const [newSupplyInput, setNewSupplyInput] = useState('');
+  const [description, setDescription] = useState('');
+  const [criteria, setCriteria] = useState<string[]>([
+    '실험 설계 및 가설 검증의 적절성 (40점)',
+    '데이터 해석 및 오차 원인 분석 (35점)',
+    '보고서 작성 양식 및 제출 기한 준수 (25점)',
+  ]);
+  const [newCriterionInput, setNewCriterionInput] = useState('');
+  const [teacherName, setTeacherName] = useState('박물리 선생님');
+
+  // Preview of period based on date and block
+  const previewCalculation = getPeriodForBlockAndDate(block, date, weeklySchedule);
+
+  // Closest assessment for teacher banner
+  const closestUpcoming = getClosestTeacherAssessment(assessments, weeklySchedule);
+  const closestTimeInfo = closestUpcoming ? getDetailedTimeRemaining(closestUpcoming.date, closestUpcoming.period) : null;
+
+  const resetForm = () => {
+    setTargetGrade(3);
+    setBlock('E');
+    setSubject('물리Ⅱ');
+    setTitle('');
+    setType('실험/탐구');
+    setDate('2026-10-30');
+    setSupplies(['공학용 계산기', '실험 가운']);
+    setNewSupplyInput('');
+    setDescription('');
+    setCriteria([
+      '실험 설계 및 가설 검증의 적절성 (40점)',
+      '데이터 해석 및 오차 원인 분석 (35점)',
+      '보고서 작성 양식 및 제출 기한 준수 (25점)',
+    ]);
+    setNewCriterionInput('');
+    setTeacherName('박물리 선생님');
+    setEditingId(null);
+  };
+
+  const handleGradeChangeInForm = (newGrade: number) => {
+    setTargetGrade(newGrade);
+    if (newGrade === 3) {
+      if (['A', 'B', 'C', 'D'].includes(block)) {
+        setBlock('E');
+      }
+      if (!subject || subject === '화학Ⅰ') setSubject('물리Ⅱ');
+    } else {
+      if (['E', 'F', 'G', 'H'].includes(block)) {
+        setBlock('A');
+      }
+      if (!subject || subject === '물리Ⅱ') setSubject('화학Ⅰ');
+    }
+  };
+
+  const handleOpenAddModal = () => {
+    resetForm();
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (asmt: Assessment) => {
+    setEditingId(asmt.id);
+    setSubject(asmt.subject);
+    setBlock(asmt.block);
+    setTargetGrade(asmt.targetGrade || 3);
+    setTitle(asmt.title);
+    setType(asmt.type);
+    setDate(asmt.date);
+    setSupplies(asmt.supplies);
+    setDescription(asmt.description);
+    setCriteria(asmt.criteria || []);
+    setTeacherName(asmt.teacherName);
+    setIsModalOpen(true);
+  };
+
+  const handleAddSupply = (item: string) => {
+    const trimmed = item.trim();
+    if (trimmed && !supplies.includes(trimmed)) {
+      setSupplies([...supplies, trimmed]);
+      setNewSupplyInput('');
+    }
+  };
+
+  const handleRemoveSupply = (item: string) => {
+    setSupplies(supplies.filter((s) => s !== item));
+  };
+
+  const handleAddCriterion = () => {
+    const trimmed = newCriterionInput.trim();
+    if (trimmed) {
+      setCriteria([...criteria, trimmed]);
+      setNewCriterionInput('');
+    }
+  };
+
+  const handleRemoveCriterion = (idx: number) => {
+    setCriteria(criteria.filter((_, i) => i !== idx));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !subject.trim()) return;
+
+    if (editingId) {
+      const updated: Assessment = {
+        id: editingId,
+        subject,
+        block,
+        targetGrade,
+        title,
+        type,
+        date,
+        supplies,
+        description,
+        criteria,
+        teacherName,
+        createdAt: new Date().toISOString(),
+      };
+      onUpdateAssessment(updated);
+    } else {
+      const newAsmt: Assessment = {
+        id: `asmt-${Date.now()}`,
+        subject,
+        block,
+        targetGrade,
+        title,
+        type,
+        date,
+        supplies,
+        description,
+        criteria,
+        teacherName,
+        createdAt: new Date().toISOString(),
+      };
+      onAddAssessment(newAsmt);
+    }
+
+    setIsModalOpen(false);
+    resetForm();
+  };
+
+  const filteredAssessments = assessments.filter((a) => {
+    if (filterGrade === '3' && a.targetGrade !== 3) return false;
+    if (filterGrade === '1_2' && a.targetGrade === 3) return false;
+    if (filterBlock === 'ALL') return true;
+    return a.block === filterBlock;
+  });
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      {/* Teacher Mode Security Notice */}
+      <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
+          <span className="font-bold">선생님 전용 공지 관리 센터 (교원 인증 모드)</span>
+          <span className="text-amber-700 hidden sm:inline">| 학생용 화면이 완전히 분리되어 표시되지 않습니다.</span>
+        </div>
+        <span className="font-semibold text-[11px] bg-amber-200/80 px-2.5 py-0.5 rounded-full">
+          교원 권한
+        </span>
+      </div>
+
+      {/* Closest Assessment Banner for Teachers */}
+      {closestUpcoming && closestTimeInfo && (
+        <aside
+          aria-label="학교 다음 임박 수행평가 일정"
+          className="rounded-2xl bg-slate-900 border-2 border-amber-400 p-4 sm:p-5 text-white shadow-xl relative overflow-hidden"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1.5 flex-1">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 fill-slate-950 stroke-amber-400" />
+                  가장 가까운 학교 수행평가 일정
+                </span>
+                <span className="font-mono font-bold text-amber-300 text-xs">
+                  {closestTimeInfo.humanBadge} · {closestTimeInfo.detailedText}
+                </span>
+              </div>
+
+              <div className="flex items-baseline gap-2">
+                <span className="text-amber-300 font-black text-base">
+                  [{closestUpcoming.subject}]
+                </span>
+                <h2 className="text-sm sm:text-base font-bold text-white line-clamp-1">
+                  {closestUpcoming.title}
+                </h2>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
+                <span>
+                  대상: <strong className="text-white">{closestUpcoming.targetGrade}학년</strong> ({closestUpcoming.block === 'COMMON' ? '공통' : `${closestUpcoming.block}블록`})
+                </span>
+                <span>·</span>
+                <span>
+                  일자: <strong className="text-amber-200">{closestUpcoming.date} ({closestUpcoming.dayStr}) {closestUpcoming.period}교시</strong>
+                </span>
+                <span>·</span>
+                <span>담당: {closestUpcoming.teacherName}</span>
+                {closestUpcoming.supplies.length > 0 && (
+                  <>
+                    <span>·</span>
+                    <span className="text-slate-400">준비물: {closestUpcoming.supplies.join(', ')}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleOpenEditModal(closestUpcoming)}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-slate-700 transition-colors shrink-0"
+            >
+              공지 수정하기
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* Header Banner */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600 mb-1">
+            <BookOpen className="w-4 h-4" />
+            <span>중산고 교원 전용 블록 매칭 공지서 등록기</span>
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            선생님 수행평가 공지 관리
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            선생님이 과목과 블록(<strong>1·2학년 A~D</strong>, <strong>3학년 E~H</strong>), 일자, 준비물을 1회만 등록하면,
+            해당 블록을 수강하는 학생들의 개인 시간표에 해당 교시와 교실로 자동 변환되어 배부됩니다.
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenAddModal}
+          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          새 수행평가 등록
+        </button>
+      </div>
+
+      {/* Grade & Block Filter Controls */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Filter className="w-3.5 h-3.5 text-slate-500" />
+            <span className="font-bold text-slate-700">학년 필터:</span>
+            <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg">
+              <button
+                onClick={() => {
+                  setFilterGrade('ALL');
+                  setFilterBlock('ALL');
+                }}
+                className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
+                  filterGrade === 'ALL' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                전체 학년
+              </button>
+              <button
+                onClick={() => {
+                  setFilterGrade('3');
+                  setFilterBlock('ALL');
+                }}
+                className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
+                  filterGrade === '3' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                3학년 (E~H 블록)
+              </button>
+              <button
+                onClick={() => {
+                  setFilterGrade('1_2');
+                  setFilterBlock('ALL');
+                }}
+                className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
+                  filterGrade === '1_2' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                1·2학년 (A~D 블록)
+              </button>
+            </div>
+          </div>
+
+          <div className="text-slate-500">
+            등록된 공지 총 <strong className="text-slate-900 tabular-nums">{filteredAssessments.length}건</strong>
+          </div>
+        </div>
+
+        {/* Sub Block Filters */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100 text-xs">
+          <span className="text-[11px] text-slate-400 font-medium">블록 선택:</span>
+          <button
+            onClick={() => setFilterBlock('ALL')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+              filterBlock === 'ALL' ? 'bg-slate-900 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            전체 블록
+          </button>
+
+          {/* 3rd grade blocks */}
+          {(filterGrade === 'ALL' || filterGrade === '3') && (
+            <>
+              {['E', 'F', 'G', 'H'].map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setFilterBlock(b)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                    filterBlock === b ? 'bg-indigo-600 text-white font-bold' : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100'
+                  }`}
+                >
+                  {b}블록 (3학년)
+                </button>
+              ))}
+            </>
+          )}
+
+          {/* 1, 2 grade blocks */}
+          {(filterGrade === 'ALL' || filterGrade === '1_2') && (
+            <>
+              {['A', 'B', 'C', 'D'].map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setFilterBlock(b)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                    filterBlock === b ? 'bg-emerald-600 text-white font-bold' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                  }`}
+                >
+                  {b}블록 (1·2학년)
+                </button>
+              ))}
+            </>
+          )}
+
+          <button
+            onClick={() => setFilterBlock('COMMON')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+              filterBlock === 'COMMON' ? 'bg-slate-700 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            공통과목
+          </button>
+        </div>
+      </div>
+
+      {/* Announcements List */}
+      <div className="space-y-3">
+        {filteredAssessments.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+            <BookOpen className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-700">해당 조건에 등록된 수행평가 공지가 없습니다.</p>
+          </div>
+        ) : (
+          filteredAssessments.map((asmt) => {
+            const periodInfo = getPeriodForBlockAndDate(asmt.block, asmt.date, weeklySchedule, asmt.periodOverride);
+            return (
+              <div
+                key={asmt.id}
+                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 transition-all"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2 text-xs font-semibold flex-wrap">
+                      <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono text-[11px] font-bold">
+                        {asmt.block === 'COMMON' ? '공통과목' : `${asmt.block}블록 선택`}
+                      </span>
+                      <span className="text-slate-400">·</span>
+                      <span className="text-slate-900 font-bold">{asmt.subject}</span>
+                      <span className="text-slate-400">·</span>
+                      <span className="text-indigo-800 font-medium bg-indigo-50/80 px-2 py-0.5 rounded text-[11px]">
+                        {asmt.targetGrade}학년 대상 ({asmt.targetGrade === 3 ? 'E~H블록' : 'A~D블록'})
+                      </span>
+                      <span className="text-slate-400">·</span>
+                      <span className="text-slate-500">{asmt.type}</span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-slate-900">{asmt.title}</h3>
+
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      {asmt.description}
+                    </p>
+
+                    {/* Auto-matching info banner */}
+                    <div className="flex flex-wrap items-center gap-3 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-600">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>일자: {asmt.date} ({periodInfo.dayStr.slice(0, 1)})</span>
+                      </div>
+                      <div className="flex items-center gap-1 font-semibold text-indigo-900">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>자동 계산 교시: {periodInfo.period}교시</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        담당: {asmt.teacherName}
+                      </div>
+                    </div>
+
+                    {/* Supplies Chips */}
+                    {asmt.supplies.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                        <span className="text-[11px] font-semibold text-slate-500">준비물:</span>
+                        {asmt.supplies.map((s) => (
+                          <span
+                            key={s}
+                            className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                    <button
+                      onClick={() => handleOpenEditModal(asmt)}
+                      className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="수정"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteAssessment(asmt.id)}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add / Edit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-600" />
+                {editingId ? '수행평가 공지 수정' : '새 수행평가 공지 작성'}
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs">
+              {/* Target Grade & Block Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">대상 학년</label>
+                  <select
+                    value={targetGrade}
+                    onChange={(e) => handleGradeChangeInForm(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value={3}>3학년 (E,F,G,H블록)</option>
+                    <option value={2}>2학년 (A,B,C,D블록)</option>
+                    <option value={1}>1학년 (A,B,C,D블록)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    해당 블록 ({targetGrade === 3 ? 'E~H' : 'A~D'} 또는 공통)
+                  </label>
+                  <select
+                    value={block}
+                    onChange={(e) => setBlock(e.target.value as BlockId)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold text-indigo-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    {targetGrade === 3 ? (
+                      <>
+                        <option value="E">E블록 (3학년 선택)</option>
+                        <option value="F">F블록 (3학년 선택)</option>
+                        <option value="G">G블록 (3학년 선택)</option>
+                        <option value="H">H블록 (3학년 선택)</option>
+                        <option value="COMMON">공통과목 / 학급 공통</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="A">A블록 (1·2학년 선택)</option>
+                        <option value="B">B블록 (1·2학년 선택)</option>
+                        <option value="C">C블록 (1·2학년 선택)</option>
+                        <option value="D">D블록 (1·2학년 선택)</option>
+                        <option value="COMMON">공통과목 / 학급 공통</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">과목명</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={targetGrade === 3 ? '예: 물리Ⅱ, 생명과학Ⅱ...' : '예: 화학Ⅰ, 생명과학Ⅰ...'}
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Title & Type */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-700 mb-1">수행평가 제목</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="예: 전자기 유도 법칙 탐구 실험 및 보고서 작성"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">평가 유형</label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as AssessmentType)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    {ASSESSMENT_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Date & Live Period Auto-calculation banner */}
+              <div className="p-3.5 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">수행평가 실시 일자</label>
+                    <input
+                      type="date"
+                      required
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">담당 선생님 성함</label>
+                    <input
+                      type="text"
+                      required
+                      value={teacherName}
+                      onChange={(e) => setTeacherName(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto Calculated Period indicator */}
+                <div className="text-xs text-indigo-900 flex items-center gap-1.5 pt-1">
+                  <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>
+                    <strong>시간표 자동 연동 결과:</strong> {date} ({previewCalculation.dayStr}) {block}블록은 학교 블록표 기준{' '}
+                    <span className="font-bold underline text-indigo-700">{previewCalculation.period}교시</span>에 실시됩니다.
+                  </span>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">평가 세부 내용 및 유의사항</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="학생들이 숙지해야 할 실험/평가 절차, 유의점 등을 기재하세요."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Supplies */}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">학생 지참 준비물</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="준비물 입력 후 추가 (예: 공학용 계산기)"
+                    value={newSupplyInput}
+                    onChange={(e) => setNewSupplyInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSupply(newSupplyInput);
+                      }
+                    }}
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddSupply(newSupplyInput)}
+                    className="px-3 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 font-semibold"
+                  >
+                    추가
+                  </button>
+                </div>
+
+                {/* Quick Add Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                  <span className="text-[11px] text-slate-400">자주 쓰는 준비물:</span>
+                  {COMMON_SUPPLIES.slice(0, 6).map((item) => (
+                    <button
+                      type="button"
+                      key={item}
+                      onClick={() => handleAddSupply(item)}
+                      className="text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                    >
+                      + {item}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Selected Supplies Chips */}
+                <div className="flex flex-wrap gap-1.5 min-h-[30px] p-2 bg-slate-50 rounded-lg border border-slate-200">
+                  {supplies.length === 0 ? (
+                    <span className="text-slate-400 italic">추가된 준비물이 없습니다.</span>
+                  ) : (
+                    supplies.map((item) => (
+                      <span
+                        key={item}
+                        className="inline-flex items-center gap-1 bg-white border border-slate-300 px-2 py-0.5 rounded-md text-slate-800 font-medium"
+                      >
+                        {item}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSupply(item)}
+                          className="text-slate-400 hover:text-rose-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Rubric Criteria */}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">평가 루브릭 / 배점 기준</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="채점 기준 입력 (예: 탐구 설계 및 가설 설정 (30점))"
+                    value={newCriterionInput}
+                    onChange={(e) => setNewCriterionInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCriterion();
+                      }
+                    }}
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCriterion}
+                    className="px-3 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 font-semibold"
+                  >
+                    항목 추가
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {criteria.map((crit, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200"
+                    >
+                      <span className="text-slate-700">
+                        {idx + 1}. {crit}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCriterion(idx)}
+                        className="text-slate-400 hover:text-rose-600 px-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all"
+                >
+                  {editingId ? '공지 수정 완료' : '공지 발행하기'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,0 +1,6 @@
+{
+  "name": "내 시간표 맞춤 수행평가 알림",
+  "description": "고교학점제·선택과목제 블록(1·2학년 A~D, 3학년 E~H) 및 컴시간알리미 연동 맞춤 수행평가 알림 서비스. 교사용/학생용 분리 인터페이스와 가장 가까운 수행평가 카운트다운을 지원합니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
