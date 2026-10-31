@@ -32,7 +32,10 @@ import {
   verifySession,
   writeSession,
 } from './utils/authClient';
-import { refreshSchoolSettings } from './utils/schoolSettings';
+import { applyTimetableOverrides, refreshSchoolSettings } from './utils/schoolSettings';
+import { applyMyElectives, toCompactDate } from './utils/textbookList';
+import { getWeekDays } from './utils/useNeisTimetable';
+import { AgentAction, AgentAssistant } from './components/AgentAssistant';
 import { Navbar } from './components/Navbar';
 import { StudentHome } from './components/StudentHome';
 import { StudentScheduleEditor } from './components/StudentScheduleEditor';
@@ -313,6 +316,83 @@ export default function App() {
     });
   }, [activeStudent, session, isSessionVerified]);
 
+  const handleAgentAction = (action: AgentAction): string | null => {
+    const { name, args } = action;
+    const target = matchedAssessments.find((a) => a.id === args.assessment_id);
+
+    if (name === 'open_screen') {
+      setCurrentRole('student');
+      const openers: Record<string, () => void> = {
+        home: () => setActiveTab('home'),
+        timetable: () => setActiveTab('matrix'),
+        mypage: () => setActiveTab('mypage'),
+        packing: () => setIsMorningRoutineOpen(true),
+        campus_map: () => setIsCampusMapOpen(true),
+        subject_settings: () => setIsScheduleEditorOpen(true),
+        notifications: () => setIsLockScreenOpen(true),
+      };
+      openers[args.screen]?.();
+      return openers[args.screen] ? '화면을 열었습니다.' : null;
+    }
+
+    if (!target) return '해당 수행평가를 찾지 못했습니다.';
+
+    if (name === 'open_assessment') {
+      setSelectedAssessmentForModal(target);
+      return `${target.subject} 수행평가를 열었습니다.`;
+    }
+    if (name === 'check_supply') {
+      if (!target.supplies.includes(args.item)) return `${args.item}은(는) 준비물 목록에 없습니다.`;
+      if (!activeStudent.checkedSupplies[target.id]?.includes(args.item)) {
+        handleToggleSupply(target.id, args.item);
+      }
+      return `${args.item} 체크를 마쳤습니다.`;
+    }
+    if (name === 'mark_assessment_done') {
+      if (!target.isCompleted) handleToggleComplete(target.id);
+      return `${target.subject} 수행평가를 완료 처리했습니다.`;
+    }
+    return null;
+  };
+
+  const buildAgentContext = async (): Promise<string> => {
+    const today = new Date();
+    const lines = [`오늘: ${toCompactDate(today)} (${'일월화수목금토'[today.getDay()]}요일)`];
+
+    if (session?.role === 'teacher') {
+      lines.push(`교사: ${session.name}`, '등록된 수행평가:');
+      assessments.slice(0, 40).forEach((a) => {
+        lines.push(`- ${a.date} ${a.targetGrade}학년 ${a.block} ${a.subject} ${a.title}`);
+      });
+      return lines.join('\n');
+    }
+
+    lines.push(`학생: ${activeStudent.grade}학년 ${activeStudent.classNum}반`);
+    lines.push(`선택과목: ${activeStudent.courses.map((c) => `${c.block}블록 ${c.subject || '미선택'}`).join(', ') || '없음'}`);
+    lines.push('수행평가:');
+    matchedAssessments.slice(0, 30).forEach((a) => {
+      const checked = activeStudent.checkedSupplies[a.id] || [];
+      lines.push(
+        `- id=${a.id} | ${a.date} ${a.dayOfWeekStr} ${a.calculatedPeriod}교시 | D${a.daysRemaining >= 0 ? '-' : '+'}${Math.abs(a.daysRemaining)} | ${a.subject} ${a.title} | 교실 ${a.studentRoom} | 준비물 ${a.supplies.join(', ') || '없음'} | 챙김 ${checked.join(', ') || '없음'} | ${a.isCompleted ? '완료' : '미완료'} | 내용 ${a.description.slice(0, 200)}`
+      );
+    });
+
+    try {
+      const days = getWeekDays(0);
+      const url = `/api/timetable?grade=${activeStudent.grade}&classNum=${activeStudent.classNum}&from=${toCompactDate(days[0])}&to=${toCompactDate(days[4])}`;
+      const data = await fetch(url).then((response) => response.json());
+      const rows = applyMyElectives(
+        applyTimetableOverrides(data.rows as Array<{ date: string; period: number; subject: string }>, activeStudent.grade, activeStudent.classNum),
+        activeStudent
+      ).sort((a, b) => a.date.localeCompare(b.date) || a.period - b.period);
+      lines.push('이번 주 시간표:');
+      rows.forEach((row) => lines.push(`- ${row.date} ${row.period}교시 ${row.subject}`));
+    } catch {
+      lines.push('시간표는 불러오지 못했습니다.');
+    }
+    return lines.join('\n');
+  };
+
   if (!session) {
     return <LoginPortal onLoggedIn={applySession} />;
   }
@@ -563,6 +643,17 @@ export default function App() {
           }}
         />
       )}
+
+      <AgentAssistant
+        token={session.token}
+        suggestions={
+          session.role === 'teacher'
+            ? ['이번 달 수행평가 일정 정리해 줘']
+            : ['가장 급한 수행평가가 뭐야?', '내일 뭐 챙겨야 해?', '시간표 보여 줘']
+        }
+        buildContext={buildAgentContext}
+        onAction={handleAgentAction}
+      />
 
       {/* Clean Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
