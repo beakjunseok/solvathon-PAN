@@ -400,7 +400,7 @@ export default function App() {
               assessments={assessments}
               onSelectStudent={handleSelectStudent}
               onOpenDetailModal={(asmt) => setSelectedAssessmentForModal(asmt)}
-              onOpenComciganModal={() => setIsComciganModalOpen(true)}
+              onOpenScheduleEditor={() => setIsScheduleEditorOpen(true)}
             />
           ) : (
             <StudentHome

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StudentCourse, StudentProfile, getBlocksForGrade, getGradeBlockLabel } from '../types';
-import { POPULAR_ELECTIVE_SUBJECTS } from '../data/initialData';
+import { getTextbookSubjects } from '../utils/textbookList';
+import { useNeisTimetable } from '../utils/useNeisTimetable';
 import { Save, User, BookOpen, MapPin, X, Sparkles, Check, Info } from 'lucide-react';
 
 interface StudentScheduleEditorProps {
@@ -20,6 +21,8 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
   const [studentNum, setStudentNum] = useState(student.studentNum);
 
   const activeBlocks = getBlocksForGrade(grade);
+  const { rows: gradeRows } = useNeisTimetable(grade, null);
+  const subjectOptions = getTextbookSubjects(gradeRows).sort((a, b) => a.localeCompare(b, 'ko'));
 
   const [courses, setCourses] = useState<StudentCourse[]>(() => {
     const blocks = getBlocksForGrade(student.grade);
@@ -65,22 +68,6 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
     setCourses((prev) =>
       prev.map((c) => (c.block === block ? { ...c, [field]: value } : c))
     );
-  };
-
-  const handleApplyPreset = (block: StudentCourse['block'], subjectName: string) => {
-    handleUpdateCourse(block, 'subject', subjectName);
-    const currentRoom = courses.find((c) => c.block === block)?.room;
-    if (!currentRoom) {
-      if (subjectName.includes('물리')) handleUpdateCourse(block, 'room', '신관 3층 물리실험실 (3-4)');
-      else if (subjectName.includes('화학')) handleUpdateCourse(block, 'room', '신관 2층 제1화학실');
-      else if (subjectName.includes('생명')) handleUpdateCourse(block, 'room', '본관 3층 생명과학실');
-      else if (subjectName.includes('지구')) handleUpdateCourse(block, 'room', '신관 4층 지구관측실');
-      else if (subjectName.includes('역사') || subjectName.includes('세계사')) handleUpdateCourse(block, 'room', '본관 4층 인문사회실');
-      else if (subjectName.includes('경제')) handleUpdateCourse(block, 'room', '본관 4층 사회융합실 3-2');
-      else if (subjectName.includes('영어')) handleUpdateCourse(block, 'room', '본관 2층 어학실습실');
-      else if (subjectName.includes('일본어')) handleUpdateCourse(block, 'room', '별관 1층 제2외국어실');
-      else handleUpdateCourse(block, 'room', `${block}블록 전용교실`);
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -192,6 +179,12 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
             </div>
           </div>
 
+          <datalist id="neis-subject-options">
+            {subjectOptions.map((subject) => (
+              <option key={subject} value={subject} />
+            ))}
+          </datalist>
+
           {/* Block-by-Block Course Setup */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -209,16 +202,6 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
                 subject: '',
                 room: '',
               };
-
-              // Presets according to grade and block
-              const presets =
-                grade === 3
-                  ? block === 'E' || block === 'F'
-                    ? ['물리Ⅱ', '화학Ⅱ', '생명과학Ⅱ', '지구과학Ⅱ', '미적분', '기하']
-                    : ['세계사', '경제', '정치와 법', '사회·문화', '심화영어', '일본어Ⅱ']
-                  : block === 'A' || block === 'B'
-                  ? ['물리Ⅰ', '화학Ⅰ', '생명과학Ⅰ', '지구과학Ⅰ', '수학Ⅰ', '수학Ⅱ']
-                  : ['세계지리', '한국지리', '정치와 법', '사회·문화', '일본어Ⅰ', '중국어Ⅰ'];
 
               return (
                 <div
@@ -247,8 +230,8 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
                       <label className="block text-xs text-slate-500 mb-1">과목명</label>
                       <input
                         type="text"
-                        required
-                        placeholder={grade === 3 ? '예: 물리Ⅱ, 생명과학Ⅱ, 경제...' : '예: 화학Ⅰ, 생명과학Ⅰ, 정치와 법...'}
+                        list="neis-subject-options"
+                        placeholder="눌러서 과목을 고르거나 입력하세요"
                         value={course.subject}
                         onChange={(e) =>
                           handleUpdateCourse(block, 'subject', e.target.value)
@@ -260,8 +243,7 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
                       <label className="block text-xs text-slate-500 mb-1">이동 교실 / 특별실</label>
                       <input
                         type="text"
-                        required
-                        placeholder="예: 신관 3층 물리실 (3-4)"
+                        placeholder="예: 신관 3층 물리실 (선택 입력)"
                         value={course.room}
                         onChange={(e) =>
                           handleUpdateCourse(block, 'room', e.target.value)
@@ -271,24 +253,6 @@ export const StudentScheduleEditor: React.FC<StudentScheduleEditorProps> = ({
                     </div>
                   </div>
 
-                  {/* Quick Preset Subject Chips */}
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-100">
-                    <span className="text-[11px] text-slate-400 shrink-0">추천 과목:</span>
-                    {presets.map((preset) => (
-                      <button
-                        type="button"
-                        key={preset}
-                        onClick={() => handleApplyPreset(block, preset)}
-                        className={`text-[11px] px-2 py-0.5 rounded transition-colors ${
-                          course.subject === preset
-                            ? 'bg-indigo-600 text-white font-medium'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                        }`}
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               );
             })}

@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const { grade, classNum, from, to } = req.query;
   const isValid =
     /^[123]$/.test(grade || '') &&
-    /^\d{1,2}$/.test(classNum || '') &&
+    /^\d{0,2}$/.test(classNum || '') &&
     /^\d{8}$/.test(from || '') &&
     /^\d{8}$/.test(to || '');
 
@@ -35,10 +35,10 @@ export default async function handler(req, res) {
     AY: getAcademicYear(from),
     SEM: getSemester(from),
     GRADE: grade,
-    CLASS_NM: classNum,
     TI_FROM_YMD: from,
     TI_TO_YMD: to,
   });
+  if (classNum) params.set('CLASS_NM', classNum);
   if (key) params.set('KEY', key);
 
   try {
@@ -56,6 +56,7 @@ export default async function handler(req, res) {
       date: row.ALL_TI_YMD,
       period: Number(row.PERIO),
       subject: row.ITRT_CNTNT,
+      classNum: Number(row.CLASS_NM),
     }));
 
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
