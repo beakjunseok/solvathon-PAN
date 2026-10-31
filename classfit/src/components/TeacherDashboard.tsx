@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Assessment, AssessmentSlot, BlockId, AssessmentType, FileRef, StudentProfile, SubmissionMode, SubmissionSettings, WeeklyBlockSlot } from '../types';
 import { formatSlot, getDayOfWeekFromDate, getPeriodForBlockAndDate, DAY_KOREAN, TODAY_DATE_STR, getClosestTeacherAssessment, getDetailedTimeRemaining } from '../utils/scheduleMatcher';
 import { FILE_ACCEPT, isRemoteConfigured, uploadFile, validateFile } from '../utils/remoteStore';
 import { SubmissionStatusModal } from './SubmissionStatusModal';
 import { TimetableManager } from './TimetableManager';
+import { SchoolSubject, SubjectChooser, fetchSchoolSubjects } from './SubjectChooser';
+import { saveTeacherSubjects } from '../utils/authClient';
 import { AssessmentSlotPicker } from './AssessmentSlotPicker';
 import { Plus, Trash2, Edit3, Calendar, Clock, BookOpen, AlertCircle, CheckCircle, Tag, Sparkles, X, Filter, Upload, ClipboardList } from 'lucide-react';
 
 interface TeacherDashboardProps {
   students: StudentProfile[];
   defaultTeacherName: string;
-  defaultSubject: string;
+  authToken: string;
+  teacherSubjects: string[];
+  onSubjectsSaved: (subjects: string[]) => void;
   onTimetableSaved: () => void;
   assessments: Assessment[];
   weeklySchedule: WeeklyBlockSlot[];
@@ -84,7 +88,9 @@ function getDefaultDate(): string {
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   students,
   defaultTeacherName,
-  defaultSubject,
+  authToken,
+  teacherSubjects,
+  onSubjectsSaved,
   onTimetableSaved,
   assessments,
   weeklySchedule,
@@ -96,12 +102,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [filterBlock, setFilterBlock] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTimetableOpen, setIsTimetableOpen] = useState(false);
+  const [isSubjectsOpen, setIsSubjectsOpen] = useState(teacherSubjects.length === 0);
+  const [subjectDraft, setSubjectDraft] = useState<string[]>(teacherSubjects);
+  const [subjectError, setSubjectError] = useState('');
+  const [schoolSubjects, setSchoolSubjects] = useState<SchoolSubject[]>([]);
+
+  useEffect(() => {
+    fetchSchoolSubjects()
+      .then(setSchoolSubjects)
+      .catch((err) => console.error('Failed to load subjects', err));
+  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
   const [targetGrade, setTargetGrade] = useState(3);
   const [block, setBlock] = useState<BlockId>('E');
-  const [subject, setSubject] = useState(defaultSubject);
+  const [subject, setSubject] = useState('');
   const [title, setTitle] = useState('');
   const [type, setType] = useState<AssessmentType>('실험/탐구');
   const [date, setDate] = useState('');
@@ -132,7 +148,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const resetForm = () => {
     setTargetGrade(3);
     setBlock('E');
-    setSubject(defaultSubject);
+    setSubject('');
     setTitle('');
     setType('실험/탐구');
     setDate('');
@@ -168,8 +184,33 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     if (newGrade === 1) setBlock('COMMON');
   };
 
+  // 과목을 고르면 그 과목이 있는 학년으로 맞춘다.
+  const handleChooseSubject = (name: string) => {
+    setSubject(name);
+    const grades = schoolSubjects.find((item) => item.name === name)?.grades || [];
+    if (grades.length > 0 && !grades.includes(targetGrade)) {
+      handleGradeChangeInForm(grades[0]);
+    }
+  };
+
+  const handleSaveSubjects = async () => {
+    setSubjectError('');
+    try {
+      const saved = await saveTeacherSubjects(authToken, subjectDraft);
+      onSubjectsSaved(saved);
+      setIsSubjectsOpen(false);
+    } catch (err) {
+      setSubjectError(err instanceof Error ? err.message : '담당 과목을 저장하지 못했습니다.');
+    }
+  };
+
   const handleOpenAddModal = () => {
     resetForm();
+    if (teacherSubjects.length > 0) {
+      const grades = schoolSubjects.find((item) => item.name === teacherSubjects[0])?.grades || [];
+      setSubject(teacherSubjects[0]);
+      if (grades.length > 0) handleGradeChangeInForm(grades[0]);
+    }
     setIsModalOpen(true);
   };
 
@@ -445,6 +486,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
         <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
           <button
+            onClick={() => {
+              setSubjectDraft(teacherSubjects);
+              setIsSubjectsOpen(true);
+            }}
+            className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5"
+          >
+            <BookOpen className="w-4 h-4" />
+            담당 과목
+          </button>
+          <button
             onClick={() => setIsTimetableOpen(true)}
             className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5"
           >
@@ -679,6 +730,34 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         )}
       </div>
 
+      {isSubjectsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 space-y-3 shadow-2xl">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">담당 과목 선택</h2>
+              <p className="text-xs text-slate-500 mt-0.5">가르치는 과목을 모두 골라 주세요. 평가 등록에 바로 나타납니다.</p>
+            </div>
+            <SubjectChooser value={subjectDraft} onChange={setSubjectDraft} />
+            {subjectError && <p className="text-xs font-semibold text-rose-700">{subjectError}</p>}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIsSubjectsOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                닫기
+              </button>
+              <button
+                onClick={handleSaveSubjects}
+                disabled={subjectDraft.length === 0}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs rounded-lg"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isTimetableOpen && (
         <TimetableManager onClose={() => setIsTimetableOpen(false)} onSaved={onTimetableSaved} />
       )}
@@ -735,11 +814,32 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     list="assessment-subject-options"
                     placeholder="시간표 과목명을 고르세요"
                     value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
+                    onChange={(e) => handleChooseSubject(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
               </div>
+
+              {teacherSubjects.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] text-slate-500">내 과목:</span>
+                  {teacherSubjects.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      aria-pressed={subject === name}
+                      onClick={() => handleChooseSubject(name)}
+                      className={`px-2.5 py-1 rounded-lg border font-medium transition-colors ${
+                        subject === name
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Title & Type */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

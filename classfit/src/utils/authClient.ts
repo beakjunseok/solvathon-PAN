@@ -5,7 +5,7 @@ export interface AuthSession {
   id: string;
   role: 'student' | 'teacher';
   name: string;
-  subject: string;
+  subjects: string[];
   profile: StudentProfile | null;
 }
 
@@ -49,6 +49,11 @@ export function verifySession(token: string): Promise<AuthSession> {
 
 export async function saveRemoteProfile(token: string, profile: StudentProfile): Promise<void> {
   await post({ action: 'save-profile', token, profile });
+}
+
+export async function saveTeacherSubjects(token: string, subjects: string[]): Promise<string[]> {
+  const result = await post<{ subjects: string[] }>({ action: 'save-subjects', token, subjects });
+  return result.subjects;
 }
 
 export async function fetchStudentAccounts(token: string): Promise<StudentProfile[]> {

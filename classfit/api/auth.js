@@ -6,6 +6,7 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES = 10;
 const MIN_PASSWORD_LENGTH = 6;
 const MAX_PROFILE_BYTES = 200000;
+const MAX_SUBJECTS = 20;
 const LOGIN_ERROR = '입력한 정보가 맞지 않습니다.';
 
 function hashPassword(password, salt) {
@@ -18,6 +19,16 @@ function parseStudentNumber(value) {
   const [grade, classNum, studentNum] = match.slice(1).map(Number);
   if (classNum < 1 || classNum > 15 || studentNum < 1 || studentNum > 50) return null;
   return { grade, classNum, studentNum };
+}
+
+function asSubjects(value) {
+  if (!Array.isArray(value)) return [];
+  const names = value.map(asSubjectName).filter(Boolean);
+  return Array.from(new Set(names)).slice(0, MAX_SUBJECTS);
+}
+
+function asSubjectName(value) {
+  return typeof value === 'string' ? value.trim().slice(0, 40) : '';
 }
 
 function asName(value) {
@@ -60,7 +71,7 @@ function toSession(account) {
     id: account.id,
     role: account.role,
     name: account.name,
-    subject: account.role === 'teacher' ? account.profile?.subject || '' : '',
+    subjects: account.role === 'teacher' ? account.profile?.subjects || [] : [],
     profile: account.role === 'student' ? { ...account.profile, id: account.id } : null,
   };
 }
@@ -92,8 +103,8 @@ async function signupStudent(body) {
 
 async function signupTeacher(body) {
   const name = asName(body.name);
-  const subject = asName(body.subject);
-  if (!name || !subject) return [400, { error: '성함과 담당 과목을 입력해 주세요.' }];
+  const subjects = asSubjects(body.subjects);
+  if (!name || subjects.length === 0) return [400, { error: '성함과 담당 과목을 입력해 주세요.' }];
   if (!process.env.TEACHER_SIGNUP_CODE || body.signupCode !== process.env.TEACHER_SIGNUP_CODE) {
     return [403, { error: '교사 등록 코드가 맞지 않습니다.' }];
   }
@@ -106,7 +117,7 @@ async function signupTeacher(body) {
     role: 'teacher',
     name,
     password: body.password,
-    profile: { subject },
+    profile: { subjects },
   });
   return [200, toSession(account)];
 }
@@ -139,10 +150,8 @@ async function login(body) {
     return [401, { error: LOGIN_ERROR }];
   }
 
-  const subject = asName(body.subject);
-  const profile = account.role === 'teacher' && subject ? { ...account.profile, subject } : account.profile;
-  await updateAccount(account.id, { failed_attempts: 0, locked_until: null, profile });
-  return [200, toSession({ ...account, profile })];
+  await updateAccount(account.id, { failed_attempts: 0, locked_until: null });
+  return [200, toSession(account)];
 }
 
 async function me(user) {
@@ -172,6 +181,18 @@ async function saveProfile(user, profile) {
   return [200, { ok: true }];
 }
 
+async function saveSubjects(user, value) {
+  if (user.role !== 'teacher') return [403, { error: '권한이 없습니다.' }];
+  const subjects = asSubjects(value);
+  if (subjects.length === 0) return [400, { error: '담당 과목을 하나 이상 골라 주세요.' }];
+
+  const account = await findAccountById(user.id);
+  if (!account) return [401, { error: '다시 로그인해 주세요.' }];
+
+  await updateAccount(user.id, { profile: { ...account.profile, subjects } });
+  return [200, { subjects }];
+}
+
 async function listStudents(user) {
   if (user.role !== 'teacher') return [403, { error: '권한이 없습니다.' }];
   const response = await supabaseRequest('accounts?select=id,name,profile&role=eq.student&order=login_key');
@@ -198,6 +219,7 @@ async function route(body) {
   if (action === 'me') return me(user);
   if (action === 'save-profile') return saveProfile(user, body.profile);
   if (action === 'list-students') return listStudents(user);
+  if (action === 'save-subjects') return saveSubjects(user, body.subjects);
   return [400, { error: '알 수 없는 요청입니다.' }];
 }
 

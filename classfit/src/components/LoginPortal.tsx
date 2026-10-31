@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthSession, authenticate } from '../utils/authClient';
 import { JungsanLogo } from './JungsanLogo';
+import { SubjectChooser } from './SubjectChooser';
 
 interface LoginPortalProps {
   onLoggedIn: (session: AuthSession) => void;
@@ -19,7 +20,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoggedIn }) => {
   const [password, setPassword] = useState('');
   const [passwordCheck, setPasswordCheck] = useState('');
   const [signupCode, setSignupCode] = useState('');
-  const [subject, setSubject] = useState('');
+  const [subjects, setSubjects] = useState<string[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -39,10 +40,15 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoggedIn }) => {
       return;
     }
 
+    if (isSignup && role === 'teacher' && subjects.length === 0) {
+      setError('담당 과목을 하나 이상 골라 주세요.');
+      return;
+    }
+
     const action = !isSignup ? 'login' : role === 'student' ? 'signup-student' : 'signup-teacher';
     setIsBusy(true);
     try {
-      onLoggedIn(await authenticate({ action, role, studentNumber, name, password, signupCode, subject }));
+      onLoggedIn(await authenticate({ action, role, studentNumber, name, password, signupCode, subjects }));
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인하지 못했습니다.');
     } finally {
@@ -105,21 +111,6 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoggedIn }) => {
             />
           </label>
 
-          {role === 'teacher' && (
-            <label className="block text-sm font-medium text-slate-700">
-              담당 과목{!isSignup && ' (바꿀 때만 입력)'}
-              <input
-                required={isSignup}
-                maxLength={20}
-                autoComplete="off"
-                placeholder="예: 물리"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className={`${INPUT_CLASS} mt-1`}
-              />
-            </label>
-          )}
-
           <label className="block text-sm font-medium text-slate-700">
             비밀번호
             <input
@@ -159,6 +150,13 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoggedIn }) => {
                 className={`${INPUT_CLASS} mt-1`}
               />
             </label>
+          )}
+
+          {isSignup && role === 'teacher' && (
+            <div className="text-sm font-medium text-slate-700 space-y-1.5">
+              <p>담당 과목 (여러 개 선택 가능)</p>
+              <SubjectChooser value={subjects} onChange={setSubjects} />
+            </div>
           )}
 
           {error && (
