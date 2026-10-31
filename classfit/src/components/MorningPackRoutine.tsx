@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MatchedAssessment, StudentProfile } from '../types';
+import { applyTimetableOverrides } from '../utils/schoolSettings';
 import {
   applyMyElectives,
   getNextSchoolDay,
@@ -40,7 +41,8 @@ export const MorningPackRoutine: React.FC<MorningPackRoutineProps> = ({
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
         if (!isActive) return;
-        setTextbooks(getTextbookSubjects(applyMyElectives(data.rows, student)));
+        const rows = applyTimetableOverrides(data.rows as Array<{ date: string; period: number; subject: string }>, student.grade, student.classNum);
+        setTextbooks(getTextbookSubjects(applyMyElectives(rows, student)));
         setTextbookStatus('ready');
       })
       .catch(() => {

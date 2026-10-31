@@ -56,3 +56,19 @@ create table if not exists public.push_subscriptions (
 );
 
 alter table public.push_subscriptions enable row level security;
+
+-- 교사가 고친 블록 위치와 시간표. 로그인이 없어 시연용 정책입니다.
+create table if not exists public.school_settings (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.school_settings enable row level security;
+
+create policy "school settings demo read" on public.school_settings
+  for select to anon using (true);
+create policy "school settings demo insert" on public.school_settings
+  for insert to anon with check (true);
+create policy "school settings demo update" on public.school_settings
+  for update to anon using (true) with check (true);

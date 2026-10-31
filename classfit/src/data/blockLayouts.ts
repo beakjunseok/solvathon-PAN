@@ -1,12 +1,13 @@
 import { BlockId, DayOfWeek } from '../types';
 
 type BlockSlots = Partial<Record<BlockId, string[]>>;
+export type BlockLayouts = Record<number, BlockSlots>;
 
 const DAY_ORDER: DayOfWeek[] = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 
 // 학년별 선택과목 블록 위치. 같은 학년은 모든 반이 같다. 형식: 'MON-2'는 월요일 2교시
 // 2·3학년은 컴시간 화면과 NEIS 학년 전체 시간표로 교차 확인했다.
-export const BLOCK_LAYOUTS: Record<number, BlockSlots> = {
+export const DEFAULT_BLOCK_LAYOUTS: BlockLayouts = {
   1: {},
   2: {
     A: ['MON-5', 'WED-1', 'THU-6'],
@@ -22,20 +23,27 @@ export const BLOCK_LAYOUTS: Record<number, BlockSlots> = {
   },
 };
 
+// 교사가 저장한 위치가 있으면 그 값을 쓴다.
+let activeLayouts: BlockLayouts = DEFAULT_BLOCK_LAYOUTS;
+
+export function setBlockLayouts(layouts: BlockLayouts): void {
+  activeLayouts = layouts;
+}
+
 export function hasBlockLayout(grade: number): boolean {
-  return Object.keys(BLOCK_LAYOUTS[grade] || {}).length > 0;
+  return Object.keys(activeLayouts[grade] || {}).length > 0;
 }
 
 export function getBlockAt(grade: number, day: DayOfWeek, period: number): BlockId | null {
   const slot = `${day}-${period}`;
-  const entry = Object.entries(BLOCK_LAYOUTS[grade] || {}).find(([, slots]) => slots?.includes(slot));
+  const entry = Object.entries(activeLayouts[grade] || {}).find(([, slots]) => slots?.includes(slot));
   return entry ? (entry[0] as BlockId) : null;
 }
 
 export function getBlockPeriodOnDay(grade: number, block: string, day: DayOfWeek): number | null {
-  const slots = BLOCK_LAYOUTS[grade]?.[block as BlockId] || [];
-  const slot = slots.find((item) => item.startsWith(`${day}-`));
-  return slot ? Number(slot.split('-')[1]) : null;
+  const slots = activeLayouts[grade]?.[block as BlockId] || [];
+  const periods = slots.filter((item) => item.startsWith(`${day}-`)).map((item) => Number(item.split('-')[1]));
+  return periods.length > 0 ? Math.min(...periods) : null;
 }
 
 // NEIS 날짜(YYYYMMDD)를 요일로 바꾼다. 주말은 null이다.

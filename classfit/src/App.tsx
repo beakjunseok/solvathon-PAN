@@ -24,6 +24,7 @@ import {
   deleteRemoteAssessment,
 } from './utils/remoteStore';
 import { refreshDailyPush } from './utils/dailyPush';
+import { refreshSchoolSettings } from './utils/schoolSettings';
 import { Navbar } from './components/Navbar';
 import { StudentHome } from './components/StudentHome';
 import { StudentScheduleEditor } from './components/StudentScheduleEditor';
@@ -51,9 +52,15 @@ export default function App() {
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklyBlockSlot[]>(() => getStoredSchedule());
 
   const [isRemoteOnline, setIsRemoteOnline] = useState(false);
+  const [settingsVersion, setSettingsVersion] = useState(0);
 
   const pullRemoteAssessments = async () => {
     if (!isRemoteConfigured) return;
+    refreshSchoolSettings()
+      .then((changed) => {
+        if (changed) setSettingsVersion((version) => version + 1);
+      })
+      .catch((err) => console.error('Failed to load timetable settings', err));
     try {
       const remote = await fetchRemoteAssessments();
       if (remote.length === 0) {
@@ -143,7 +150,7 @@ export default function App() {
   const matchedAssessments = useMemo(() => {
     if (!activeStudent) return [];
     return matchStudentAssessments(activeStudent, assessments, weeklySchedule);
-  }, [activeStudent, assessments, weeklySchedule]);
+  }, [activeStudent, assessments, weeklySchedule, settingsVersion]);
 
   // Closest assessment for student (personal) and teacher (school-wide)
   const closestStudentAssessment = useMemo(() => {
@@ -152,7 +159,7 @@ export default function App() {
 
   const closestTeacherAssessment = useMemo(() => {
     return getClosestTeacherAssessment(assessments, weeklySchedule);
-  }, [assessments, weeklySchedule]);
+  }, [assessments, weeklySchedule, settingsVersion]);
 
   // 앱을 열거나 수행평가 상태가 바뀌면 고정 알림의 D-Day를 다시 맞춘다.
   useEffect(() => {
@@ -357,6 +364,7 @@ export default function App() {
           />
         ) : currentRole === 'teacher' ? (
           <TeacherDashboard
+            onTimetableSaved={() => setSettingsVersion((version) => version + 1)}
             students={students}
             defaultTeacherName={authUser.role === 'teacher' ? authUser.name : ''}
             assessments={assessments}

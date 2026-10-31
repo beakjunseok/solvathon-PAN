@@ -3,11 +3,13 @@ import { Assessment, BlockId, AssessmentType, FileRef, StudentProfile, Submissio
 import { getDayOfWeekFromDate, getPeriodForBlockAndDate, DAY_KOREAN, TODAY_DATE_STR, getClosestTeacherAssessment, getDetailedTimeRemaining } from '../utils/scheduleMatcher';
 import { FILE_ACCEPT, isRemoteConfigured, uploadFile, validateFile } from '../utils/remoteStore';
 import { SubmissionStatusModal } from './SubmissionStatusModal';
+import { TimetableManager } from './TimetableManager';
 import { Plus, Trash2, Edit3, Calendar, Clock, BookOpen, AlertCircle, CheckCircle, Tag, Sparkles, X, Filter, Upload, ClipboardList } from 'lucide-react';
 
 interface TeacherDashboardProps {
   students: StudentProfile[];
   defaultTeacherName: string;
+  onTimetableSaved: () => void;
   assessments: Assessment[];
   weeklySchedule: WeeklyBlockSlot[];
   onAddAssessment: (newAsmt: Assessment) => void;
@@ -80,6 +82,7 @@ function getDefaultDate(): string {
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   students,
   defaultTeacherName,
+  onTimetableSaved,
   assessments,
   weeklySchedule,
   onAddAssessment,
@@ -89,6 +92,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [filterGrade, setFilterGrade] = useState<'ALL' | '3' | '1_2'>('ALL');
   const [filterBlock, setFilterBlock] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTimetableOpen, setIsTimetableOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
@@ -414,13 +418,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          새 수행평가 등록
-        </button>
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+          <button
+            onClick={() => setIsTimetableOpen(true)}
+            className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5"
+          >
+            <Calendar className="w-4 h-4" />
+            시간표 관리
+          </button>
+          <button
+            onClick={handleOpenAddModal}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            새 수행평가 등록
+          </button>
+        </div>
       </div>
 
       {/* Grade & Block Filter Controls */}
@@ -636,6 +649,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           })
         )}
       </div>
+
+      {isTimetableOpen && (
+        <TimetableManager onClose={() => setIsTimetableOpen(false)} onSaved={onTimetableSaved} />
+      )}
 
       {statusAssessment && (
         <SubmissionStatusModal

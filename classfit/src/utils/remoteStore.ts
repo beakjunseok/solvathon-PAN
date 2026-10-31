@@ -71,6 +71,20 @@ export async function upsertRemoteSubmission(submission: Submission): Promise<vo
   });
 }
 
+export async function fetchRemoteSchoolSettings<T>(): Promise<T | null> {
+  const response = await request('rest/v1/school_settings?select=data&id=eq.timetable');
+  const rows: Array<{ data: T }> = await response.json();
+  return rows[0]?.data ?? null;
+}
+
+export async function upsertRemoteSchoolSettings<T>(settings: T): Promise<void> {
+  await request('rest/v1/school_settings', {
+    method: 'POST',
+    headers: UPSERT_HEADERS,
+    body: JSON.stringify({ id: 'timetable', data: settings }),
+  });
+}
+
 export function validateFile(file: File): string | null {
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
   if (!ALLOWED_EXTENSIONS.includes(extension)) {

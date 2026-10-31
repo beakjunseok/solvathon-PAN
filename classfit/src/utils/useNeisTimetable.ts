@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { applyTimetableOverrides } from './schoolSettings';
 import { toCompactDate } from './textbookList';
 
 export interface TimetableRow {
@@ -60,5 +61,6 @@ export function useNeisTimetable(grade: number, classNum: number | null, weekOff
     };
   }, [grade, classNum, from, to]);
 
-  return { rows, days, isLimited, isLoading, error };
+  const finalRows = classNum ? applyTimetableOverrides(rows, grade, classNum) : rows;
+  return { rows: finalRows, days, isLimited, isLoading, error };
 }
