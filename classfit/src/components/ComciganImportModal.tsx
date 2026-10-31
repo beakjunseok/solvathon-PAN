@@ -169,7 +169,7 @@ export const ComciganImportModal: React.FC<ComciganImportModalProps> = ({
             <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
               <span className="text-[11px] text-slate-500">
                 선택: <strong>{schoolSearchQuery} {selectedGrade}학년 {selectedClass}반</strong>
-                {isGrade3 ? ' (3학년 E~H 블록 기준)' : ' (1·2학년 A~D 블록 기준)'}
+                {isGrade3 ? ' (3학년 E~H 블록 기준)' : selectedGrade === 2 ? ' (2학년 A~D 블록 기준)' : ' (1학년 공통과목)'}
               </span>
 
               <button

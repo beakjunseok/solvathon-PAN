@@ -98,7 +98,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onUpdateAssessment,
   onDeleteAssessment,
 }) => {
-  const [filterGrade, setFilterGrade] = useState<'ALL' | '3' | '1_2'>('ALL');
+  const [filterGrade, setFilterGrade] = useState<'ALL' | '1' | '2' | '3'>('ALL');
   const [filterBlock, setFilterBlock] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTimetableOpen, setIsTimetableOpen] = useState(false);
@@ -394,8 +394,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   };
 
   const filteredAssessments = assessments.filter((a) => {
-    if (filterGrade === '3' && a.targetGrade !== 3) return false;
-    if (filterGrade === '1_2' && a.targetGrade === 3) return false;
+    if (filterGrade !== 'ALL' && a.targetGrade !== Number(filterGrade)) return false;
     if (filterBlock === 'ALL') return true;
     return a.block === filterBlock;
   }).sort((a, b) => b.date.localeCompare(a.date));
@@ -542,17 +541,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               >
                 3학년 (E~H 블록)
               </button>
-              <button
-                onClick={() => {
-                  setFilterGrade('1_2');
-                  setFilterBlock('ALL');
-                }}
-                className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
-                  filterGrade === '1_2' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600'
-                }`}
-              >
-                1·2학년 (A~D 블록)
-              </button>
+              {(['2', '1'] as const).map((grade) => (
+                <button
+                  key={grade}
+                  onClick={() => {
+                    setFilterGrade(grade);
+                    setFilterBlock('ALL');
+                  }}
+                  className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
+                    filterGrade === grade ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600'
+                  }`}
+                >
+                  {grade === '2' ? '2학년 (A~D 블록)' : '1학년 (공통과목만)'}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -591,7 +593,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           )}
 
           {/* 1, 2 grade blocks */}
-          {(filterGrade === 'ALL' || filterGrade === '1_2') && (
+          {(filterGrade === 'ALL' || filterGrade === '2') && (
             <>
               {['A', 'B', 'C', 'D'].map((b) => (
                 <button
@@ -601,7 +603,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     filterBlock === b ? 'bg-emerald-600 text-white font-bold' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                   }`}
                 >
-                  {b}블록 (1·2학년)
+                  {b}블록 (2학년)
                 </button>
               ))}
             </>

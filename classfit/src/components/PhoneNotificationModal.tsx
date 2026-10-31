@@ -1339,7 +1339,7 @@ export const PhoneNotificationModal: React.FC<PhoneNotificationModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             <span className="text-slate-200 font-semibold">2026 중산 솔버톤 심사 포인트:</span>
-            <span>선택과목 이동수업(1·2학년 A~D, 3학년 E~H) 교실 착오와 준비물 미지참을 상단 알림창으로 100% 예방</span>
+            <span>선택과목 이동수업(2학년 A~D, 3학년 E~H) 교실 착오와 준비물 미지참을 상단 알림창으로 100% 예방</span>
           </div>
           <button
             onClick={onClose}

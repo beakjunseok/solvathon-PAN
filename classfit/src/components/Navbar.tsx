@@ -256,7 +256,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] text-slate-400 font-medium hidden sm:block">
                   {isTeacherAccount
                     ? '수행평가 1회 공지 ➔ 학생별 시간표 자동 연동'
-                    : `${activeStudent.grade === 3 ? '3학년 E~H블록' : '1·2학년 A~D블록'} 내 시간표 맞춤 알림`}
+                    : `${activeStudent.grade === 3 ? '3학년 E~H블록' : activeStudent.grade === 2 ? '2학년 A~D블록' : '1학년'} 내 시간표 맞춤 알림`}
                 </span>
               </div>
             </button>

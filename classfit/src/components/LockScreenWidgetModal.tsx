@@ -485,7 +485,7 @@ export const LockScreenWidgetModal: React.FC<LockScreenWidgetModalProps> = ({
                     {student.name} 학생 ({student.grade}학년 {student.classNum}반 {student.studentNum}번)
                   </div>
                   <div className="text-xs text-slate-400">
-                    {student.grade === 3 ? '3학년 E~H 블록 시간표 연동 중' : '1·2학년 A~D 블록 시간표 연동 중'}
+                    {student.grade === 1 ? '1학년 시간표 연동 중' : student.grade === 3 ? '3학년 E~H 블록 시간표 연동 중' : '2학년 A~D 블록 시간표 연동 중'}
                   </div>
                 </div>
 
