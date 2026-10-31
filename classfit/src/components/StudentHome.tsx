@@ -228,7 +228,7 @@ export const StudentHome: React.FC<StudentHomeProps> = ({
                 className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-900 backdrop-blur-md text-white text-xs font-bold border border-white/20 transition-all flex items-center gap-1.5 shadow-lg"
               >
                 <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                <span>캠퍼스 야경 맵 보기</span>
+                <span>학교 맵 보기</span>
               </button>
               {onOpenLockScreen && (
                 <button
